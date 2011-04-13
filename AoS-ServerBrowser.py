@@ -166,8 +166,9 @@ class Base:
             
         # Add the boxes to the frame        
         for i in [self.xbox,self.ybox,self.nbox,self.volbox]:
-            self.forms.add(i)
-        self.fram.add(self.forms)
+            self.forms.pack_start(i,False,False,0)
+        self.frame.add(self.forms)
+        
         self.loadConfig()    
         self.vbox = gtk.VBox(False,5)
         self.hbox = gtk.HBox()
