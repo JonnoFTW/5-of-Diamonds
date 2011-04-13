@@ -1,0 +1,11 @@
+h1. 5 of Diamonds
+
+A server browser for Ace of Spades (http://ace-spades.net)
+
+h3. Features
+* Pulls the latest server list from the game page
+* Click on server to launch game
+
+h3. Todo
+* Add in forms for updating the config.ini file
+* Make the buttons asynchronous

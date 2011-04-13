@@ -54,7 +54,7 @@ class Base:
         gtk.main_quit()
     def loadConfig(self):
         try:
-            f = open(aos_path+'\'config.ini','r')
+            f = open(aos_path.replace('\\client.exe','')+'\\config.ini','r')
             lines = f.readlines()
             self.xresE.set_text(lines[0])
             self.yresE.set_text(lines[1])
@@ -72,10 +72,11 @@ class Base:
             y = self.yresE.get_text()
             name = self.nameE.get_text()
             vol = self.volE.get_text()
-            f = open(aos_path+'\'config.ini','w')
+            f = open(aos_path+'\\config.ini','w')
             f.write('\n'.join(['xres '+x,'yres '+y,'vol '+vol,'name '+name]))
             f.close()
             self.statusbar.push(0,"Config updated successfully")            
+
         except Exception, e:
             self.statusbar.push(0,str(e))    
         
@@ -86,14 +87,42 @@ class Base:
             self.statusbar.push(0,"Launching game")
             subprocess.Popen([aos_path, '-'+model[row][0]])
         except OSError,e:
-            self.statusbar.push(0,str(e))
-        
+            self.statusbar.push(0,str(e))        
         return True
     
     def refresh(self,widget=None,data=None):
         self.liststore.append(['test',1,32,'test',True])
         t = Update(self.liststore,self.statusbar)
         t.start()
+        return True
+    
+    def refresh(self,widget=None,data=None):
+        try:
+            servers = []
+            page = urllib.urlopen('http://ace-spades.com/').readlines()
+            s = page[page.index("<br>Server Listing:</p>\n")+1:-1]
+            # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
+            for i in s:
+                j = i.strip(' ').split()
+                curr = i.replace(' ','').split('/')
+                p = int(curr[0])
+                m = int(curr[1][0:curr[1].find('<')])
+                u = i[i.find('"')+1:i.rfind('"')]
+                n = i[i.find('>')+1:i.rfind('<')-4]
+                servers.append({
+                    'max':m,
+                    'playing':p,
+                    'name':n,
+                    'url':u})
+            self.liststore.clear()
+            for i in servers:
+                self.liststore.append([i['url'],i['playing'],i['max'],i['name'],True])
+            self.statusbar.push(0,"Updated successfully")
+            return True
+        except Exception, e:
+            print e
+            #update the server list with error message
+            self.statusbar.push(0,"Updating failed")
 
     def draw_columns(self,treeview):
         rt = gtk.CellRendererText()
@@ -180,7 +209,9 @@ class Base:
             
         # Add the boxes to the frame        
         for i in [self.xbox,self.ybox,self.nbox,self.volbox]:
-            self.frame.add(i)
+            self.forms.pack_start(i,False,False,0)
+        self.frame.add(self.forms)
+        
         self.loadConfig()    
         self.vbox = gtk.VBox(False,5)
         self.hbox = gtk.HBox()
@@ -195,6 +226,7 @@ class Base:
         # Contain everything in a single Vbox
         self.window.add(self.vbox)
         self.window.show_all()
+
 
     def main(self):
         gtk.main()
