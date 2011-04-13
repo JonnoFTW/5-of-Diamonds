@@ -19,6 +19,17 @@ class Base:
     
     def destroy(self, widget, data=None):
         gtk.main_quit()
+    def loadConfig(self):
+        try:
+            f = open(aos_path+'\'config.ini','r')
+            lines = f.readlines()
+            self.xresE.set_text(lines[0])
+            self.yresE.set_text(lines[1])
+            self.nameE.set_text(lines[3])
+            self.volE.set_text(lines[2])
+            self.statusbar.push(0,"Loaded config.ini successfully")
+        except Exception,e:
+            self.statusbar.push(0,str(e))
     def updateConfig(self,widget,data=None):
         # Update the config file
         try:
@@ -26,8 +37,9 @@ class Base:
             y = self.yresE.get_text()
             name = self.nameE.get_text()
             vol = self.volE.get_text()
-                                            
-            f = file(aos_path+'\'','w')
+            f = open(aos_path+'\'config.ini','w')
+            f.write('\n'.join(['xres '+x,'yres '+y,'vol '+vol,'name '+name]))
+            f.close()
             self.statusbar.push(0,"Config updated successfully")            
         except Exception e:
             self.statusbar.push(0,str(e))    
@@ -154,7 +166,7 @@ class Base:
         # Add the boxes to the frame        
         for i in [self.xbox,self.ybox,self.nbox,self.volbox]:
             self.frame.add(i)
-            
+        self.loadConfig()    
         self.vbox = gtk.VBox(False,5)
         self.hbox = gtk.HBox()
         self.hbox.set_spacing(3)
