@@ -6,6 +6,7 @@ import gtk
 import urllib
 import _winreg
 import threading
+import webbrowser
 
 gtk.gdk.threads_init()
 
@@ -29,16 +30,17 @@ class Update(threading.Thread):
          try:
             servers = []
             page = urllib.urlopen('http://ace-spades.com/').readlines()
-            s = page[page.index("<br>Server Listing:</p>\n")+1:-1]
+            s = page[page.index("<br>Server Listing:</p>\n")+2:-2]
             # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
             for i in s:
-                j = i.strip(' ').split()
-                curr = i.replace(' ','').split('/')
-                p = curr[0]
-                m = curr[1][0:curr[1].find('<')]
+                ratio = i[0:5].split('/')
+                p = ratio[0].replace(' ','')
+                m = ratio[1].replace(' ','')
                 u = i[i.find('"')+1:i.rfind('"')]
                 n = i[i.find('>')+1:i.rfind('<')-4]
-                self.list.append([u,int(p),int(m),n,True])
+                ping = i[6:i.find('<')]
+                    
+                self.list.append([u,int(ping),int(p),int(m),n,True])
             self.statusbar.push(0,"Updated successfully")
             return True
          except Exception, e:
@@ -54,6 +56,7 @@ class Base:
     
     def destroy(self, widget, data=None):
         gtk.main_quit()
+        
     def loadConfig(self):
         try:
             f = open(config_path,'r')
@@ -81,7 +84,13 @@ class Base:
 
         except Exception, e:
             self.statusbar.push(0,str(e))
-        
+    def openPage(self,widget,data=None):
+        if data == 'aos':
+            webbrowser.open_new_tab('http://ace-spades.com/')
+        elif data == '5od':
+            webbrowser.open_new_tab('http://www.reddit.com/r/AceOfSpades/comments/gouh3/update_aos_server_browser/')
+        return true
+    
     def joinGame(self,widget, row,col):
         model = widget.get_model()
         try:
@@ -93,7 +102,7 @@ class Base:
         return True
     
     def refresh(self,widget=None,data=None):
-        self.liststore.append(['test',1,32,'test',True])
+        self.liststore.append(['test',255,1,32,'test',True])
         t = Update(self.liststore,self.statusbar)
         t.start()
         return True
@@ -101,17 +110,20 @@ class Base:
     def draw_columns(self,treeview):
         rt = gtk.CellRendererText()
         self.tvurl = gtk.TreeViewColumn("URL",rt, text=0)
-        self.tvurl.set_sort_column_id(0)
+        self.tvurl.set_sort_column_id(1)
         rt = gtk.CellRendererText()
-        self.tvmax = gtk.TreeViewColumn("Playing",rt, text=1)
-        self.tvmax.set_sort_column_id(1)
+        self.ping = gtk.TreeViewColumn("Ping",rt, text=1)
+        self.ping.set_sort_column_id(0)
         rt = gtk.CellRendererText()
-        self.tvcurr = gtk.TreeViewColumn("Max",rt, text=2)
-        self.tvcurr.set_sort_column_id(2)
+        self.tvmax = gtk.TreeViewColumn("Max",rt, text=3)
+        self.tvmax.set_sort_column_id(2)
         rt = gtk.CellRendererText()
-        self.tvname = gtk.TreeViewColumn("Name",rt, text=3)
-        self.tvname.set_sort_column_id(3)
-        for i in [self.tvurl,self.tvmax,self.tvcurr,self.tvname]:
+        self.tvcurr = gtk.TreeViewColumn("Playing",rt, text=2)
+        self.tvcurr.set_sort_column_id(3)
+        rt = gtk.CellRendererText()
+        self.tvname = gtk.TreeViewColumn("Name",rt, text=4)
+        self.tvname.set_sort_column_id(4)
+        for i in [self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname]:
             treeview.append_column(i)
                 
     
@@ -132,7 +144,7 @@ class Base:
         self.sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         
-        self.liststore = gtk.ListStore(str, int, int,str, 'gboolean')
+        self.liststore = gtk.ListStore(str,int, int, int,str, 'gboolean')
         self.treeview = gtk.TreeView(self.liststore)
         self.refresh()
         self.treeview.connect("row-activated",self.joinGame)
@@ -149,6 +161,12 @@ class Base:
 
         self.saveB = gtk.Button("Save Config")
         self.saveB.connect("clicked",self.updateConfig,None)
+        
+        self.webB = gtk.Button("AoS Webpage")
+        self.webB.connect("clicked",self.openPage,'aos')
+
+        self.appB = gtk.Button("Get Latest 5oD")
+        self.appB.connect("clicked",self.openPage,'5od')
         
         #stick the buttons in a frame at the bottom of the window
         #use a hbox of 3 vboxes
@@ -191,6 +209,8 @@ class Base:
         self.hbox.pack_start(self.exitB,False,False,0)
         self.hbox.pack_start(self.refreshB,False,False,0)
         self.hbox.pack_start(self.saveB,False,False,0)
+        self.hbox.pack_start(self.webB,False,False,0)
+        self.hbox.pack_start(self.appB,False,False,0)
         self.vbox.pack_start(self.hbox,False,False,0)
         self.vbox.pack_start(self.sw,True,True,0)
         self.vbox.pack_start(self.frame,False,False,0)
