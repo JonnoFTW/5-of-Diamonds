@@ -10,10 +10,12 @@ import threading
 gtk.gdk.threads_init()
 
 try:
-	aos_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Classes\aos\shell\open\command')
-	aos_path = _winreg.EnumValue(aos_key,0)[1].split('\" \"')[0][1:]
+    aos_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Classes\aos\shell\open\command')
+    aos_path = _winreg.EnumValue(aos_key,0)[1].split('\" \"')[0][1:]
+    config_path = aos_path.replace('client.exe','config.ini')
 except:
-	aos_path = 'C:\Program Files\Ace of Spades\client.exe'
+    aos_path = 'C:\Program Files\Ace of Spades\client.exe'
+    config_path = aos_path.replace('client.exe','config.ini')
 
 class Update(threading.Thread):
      def __init__(self, list, statusbar):
@@ -38,11 +40,11 @@ class Update(threading.Thread):
                 n = i[i.find('>')+1:i.rfind('<')-4]
                 self.list.append([u,int(p),int(m),n,True])
             self.statusbar.push(0,"Updated successfully")
-            return True         
+            return True
          except Exception, e:
             print e
             self.statusbar.push(0,"Updating failed (%s)" % (str(e)))
-         
+
          finally:
             gtk.gdk.threads_leave()
 
@@ -54,12 +56,12 @@ class Base:
         gtk.main_quit()
     def loadConfig(self):
         try:
-            f = open(aos_path.replace('\\client.exe','')+'\\config.ini','r')
-            lines = f.readlines()
-            self.xresE.set_text(lines[0])
-            self.yresE.set_text(lines[1])
-            self.nameE.set_text(lines[3])
-            self.volE.set_text(lines[2])
+            f = open(config_path,'r')
+            lines = f.readlines()               
+            self.xresE.set_text(lines[0].split()[1])
+            self.yresE.set_text(lines[1].split()[1])
+            self.nameE.set_text(lines[3].split()[1])
+            self.volE.set_text(lines[2].split()[1])
             self.statusbar.push(0,"Loaded config.ini successfully")
             f.close()
         except Exception,e:
@@ -72,13 +74,13 @@ class Base:
             y = self.yresE.get_text()
             name = self.nameE.get_text()
             vol = self.volE.get_text()
-            f = open(aos_path+'\\config.ini','w')
+            f = open(config_path,'w')
             f.write('\n'.join(['xres '+x,'yres '+y,'vol '+vol,'name '+name]))
             f.close()
-            self.statusbar.push(0,"Config updated successfully")            
+            self.statusbar.push(0,"Config updated successfully")
 
         except Exception, e:
-            self.statusbar.push(0,str(e))    
+            self.statusbar.push(0,str(e))
         
     def joinGame(self,widget, row,col):
         model = widget.get_model()
@@ -87,7 +89,7 @@ class Base:
             self.statusbar.push(0,"Launching game")
             subprocess.Popen([aos_path, '-'+model[row][0]])
         except OSError,e:
-            self.statusbar.push(0,str(e))        
+            self.statusbar.push(0,str(e))
         return True
     
     def refresh(self,widget=None,data=None):
@@ -95,34 +97,6 @@ class Base:
         t = Update(self.liststore,self.statusbar)
         t.start()
         return True
-    
-    def refresh(self,widget=None,data=None):
-        try:
-            servers = []
-            page = urllib.urlopen('http://ace-spades.com/').readlines()
-            s = page[page.index("<br>Server Listing:</p>\n")+1:-1]
-            # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
-            for i in s:
-                j = i.strip(' ').split()
-                curr = i.replace(' ','').split('/')
-                p = int(curr[0])
-                m = int(curr[1][0:curr[1].find('<')])
-                u = i[i.find('"')+1:i.rfind('"')]
-                n = i[i.find('>')+1:i.rfind('<')-4]
-                servers.append({
-                    'max':m,
-                    'playing':p,
-                    'name':n,
-                    'url':u})
-            self.liststore.clear()
-            for i in servers:
-                self.liststore.append([i['url'],i['playing'],i['max'],i['name'],True])
-            self.statusbar.push(0,"Updated successfully")
-            return True
-        except Exception, e:
-            print e
-            #update the server list with error message
-            self.statusbar.push(0,"Updating failed")
 
     def draw_columns(self,treeview):
         rt = gtk.CellRendererText()
@@ -130,7 +104,7 @@ class Base:
         self.tvurl.set_sort_column_id(0)
         rt = gtk.CellRendererText()
         self.tvmax = gtk.TreeViewColumn("Playing",rt, text=1)
-        self.tvmax.set_sort_column_id(1)    
+        self.tvmax.set_sort_column_id(1)
         rt = gtk.CellRendererText()
         self.tvcurr = gtk.TreeViewColumn("Max",rt, text=2)
         self.tvcurr.set_sort_column_id(2)
@@ -149,7 +123,7 @@ class Base:
             self.window.set_icon_from_file("diamonds.png")
         except Exception, e:
             print e.message
-          #  sys.exit(1)
+          # sys.exit(1)
         self.window.connect("delete_event",self.delete_event)
         self.window.connect("destroy",self.destroy)
         self.window.set_border_width(10)
@@ -190,37 +164,36 @@ class Base:
         self.lVolume = gtk.Label("Volume")
         
         self.forms = gtk.HBox()
-        self.xbox = gtk.VBox(False,5)
-        self.ybox = gtk.VBox(False,5)
-        self.nbox = gtk.VBox(False,5)
-        self.volbox = gtk.VBox(False,5)
+        self.box1 = gtk.VBox(False,5)
+        self.box2 = gtk.VBox(False,5)
+
+        self.box1.pack_start(self.lXres,False,False,0)
+        self.box1.pack_start(self.xresE,False,False,0)
         
-        self.xbox.pack_start(self.lXres,False,False,0)
-        self.xbox.pack_start(self.xresE,False,False,0)
+        self.box1.pack_start(self.lYres,False,False,0)
+        self.box1.pack_start(self.yresE,False,False,0)
         
-        self.ybox.pack_start(self.lYres,False,False,0)
-        self.ybox.pack_start(self.yresE,False,False,0)
-        
-        self.nbox.pack_start(self.lName,False,False,0)
-        self.nbox.pack_start(self.nameE,False,False,0)
+        self.box2.pack_start(self.lName,False,False,0)
+        self.box2.pack_start(self.nameE,False,False,0)
                         
-        self.volbox.pack_start(self.lVolume,False,False,0)
-        self.volbox.pack_start(self.volE,False,False,0)
+        self.box2.pack_start(self.lVolume,False,False,0)
+        self.box2.pack_start(self.volE,False,False,0)
             
-        # Add the boxes to the frame        
-        for i in [self.xbox,self.ybox,self.nbox,self.volbox]:
+        # Add the boxes to the frame
+        for i in [self.box1,self.box2]:
             self.forms.pack_start(i,False,False,0)
         self.frame.add(self.forms)
         
-        self.loadConfig()    
+        self.loadConfig()
         self.vbox = gtk.VBox(False,5)
         self.hbox = gtk.HBox()
         self.hbox.set_spacing(3)
         self.hbox.pack_start(self.exitB,False,False,0)
         self.hbox.pack_start(self.refreshB,False,False,0)
+        self.hbox.pack_start(self.saveB,False,False,0)
         self.vbox.pack_start(self.hbox,False,False,0)
         self.vbox.pack_start(self.sw,True,True,0)
-        self.vbox.pack_start(self.frame,True,True,0)
+        self.vbox.pack_start(self.frame,False,False,0)
         self.vbox.pack_start(self.statusbar, False, False, 0)
 
         # Contain everything in a single Vbox
@@ -234,3 +207,4 @@ class Base:
 if __name__ == "__main__":
     base = Base()
     base.main()
+
