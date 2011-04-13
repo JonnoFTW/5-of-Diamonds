@@ -8,3 +8,4 @@ h3. Features
 
 h3. Todo
 * Add in forms for updating the config.ini file
+* Make the buttons asynchronous
