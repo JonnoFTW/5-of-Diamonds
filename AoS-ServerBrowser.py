@@ -28,6 +28,7 @@ class Base:
             self.nameE.set_text(lines[3])
             self.volE.set_text(lines[2])
             self.statusbar.push(0,"Loaded config.ini successfully")
+            f.close()
         except Exception,e:
             self.statusbar.push(0,str(e))
     def updateConfig(self,widget,data=None):
