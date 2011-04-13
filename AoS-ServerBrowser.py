@@ -132,15 +132,3 @@ if __name__ == "__main__":
     base = Base()
     base.main()
 
-D
-A
-A
-B
-B
-B
-B
-B
-B
-this
-yyi
-
