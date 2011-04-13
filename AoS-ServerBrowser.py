@@ -38,7 +38,10 @@ class Update(threading.Thread):
                 m = ratio[1].replace(' ','')
                 u = i[i.find('"')+1:i.rfind('"')]
                 n = i[i.find('>')+1:i.rfind('<')-4]
-                ping = i[6:i.find('<')]
+                if i.find('<') >= 8 :
+                    ping = i[6:i.find('<')]
+                else:
+                    ping = 0
                     
                 self.list.append([u,int(ping),int(p),int(m),n,True])
             self.statusbar.push(0,"Updated successfully")
@@ -110,10 +113,10 @@ class Base:
     def draw_columns(self,treeview):
         rt = gtk.CellRendererText()
         self.tvurl = gtk.TreeViewColumn("URL",rt, text=0)
-        self.tvurl.set_sort_column_id(1)
+        self.tvurl.set_sort_column_id(0)
         rt = gtk.CellRendererText()
         self.ping = gtk.TreeViewColumn("Ping",rt, text=1)
-        self.ping.set_sort_column_id(0)
+        self.ping.set_sort_column_id(1)
         rt = gtk.CellRendererText()
         self.tvmax = gtk.TreeViewColumn("Max",rt, text=3)
         self.tvmax.set_sort_column_id(2)
@@ -129,7 +132,7 @@ class Base:
     
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self.window.set_size_request(450,450)
+        self.window.set_size_request(550,450)
         self.window.set_title("5 of Diamonds")
         try:
             self.window.set_icon_from_file("diamonds.png")
@@ -196,12 +199,21 @@ class Base:
                         
         self.box2.pack_start(self.lVolume,False,False,0)
         self.box2.pack_start(self.volE,False,False,0)
-            
+
+        self.aboutFrame = gtk.Frame("About")
+        self.abvbox = gtk.VBox(True,3)
+        
+        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.4\n2011\nGot bugs? Get the latest version")
+        self.abtlbl.set_justify(gtk.JUSTIFY_CENTER)
+        self.abvbox.pack_start(self.abtlbl)
+
+        self.aboutFrame.add(self.abvbox)
+        
         # Add the boxes to the frame
         for i in [self.box1,self.box2]:
             self.forms.pack_start(i,False,False,0)
+        self.forms.pack_start(self.aboutFrame,True,True,0)
         self.frame.add(self.forms)
-        
         self.loadConfig()
         self.vbox = gtk.VBox(False,5)
         self.hbox = gtk.HBox()
