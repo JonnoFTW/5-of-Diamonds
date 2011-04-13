@@ -37,7 +37,6 @@ class Update(threading.Thread):
                 m = curr[1][0:curr[1].find('<')]
                 u = i[i.find('"')+1:i.rfind('"')]
                 n = i[i.find('>')+1:i.rfind('<')-4]
-                print 'adding'
                 self.list.append([u,int(p),int(m),n,True])
             self.statusbar.push(0,"Updated successfully")
             return True         
@@ -72,33 +71,6 @@ class Base:
         self.liststore.append(['test',1,32,'test',True])
         t = Update(self.liststore,self.statusbar)
         t.start()
-        #try:
-        #    servers = []
-        #    page = urllib.urlopen('http://ace-spades.com/').readlines()
-        #    s = page[page.index("<br>Server Listing:</p>\n")+1:-1]
-        #    # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
-        #    for i in s:
-        #        j = i.strip(' ').split()
-        #        curr = i.replace(' ','').split('/')
-        #        p = curr[0]
-        #        m = curr[1][0:curr[1].find('<')]
-        #        u = i[i.find('"')+1:i.rfind('"')]
-        #        n = i[i.find('>')+1:i.rfind('<')-4]
-        #        servers.append({
-        #            'max':m,
-        #            'playing':p,
-        #            'name':n,
-        #            'url':u})
-        #    self.liststore.clear()
-        #    for i in servers:
-        #        self.liststore.append([i['url'],i['playing'],i['max'],i['name'],True])
-        #    self.statusbar.push(0,"Updated successfully")
-        #    return True
-        #except Exception, e:
-        #    print e
-        #    #update the server list with error message
-        #    self.statusbar.push(0,"Updating failed")
-
 
     def draw_columns(self,treeview):
         rt = gtk.CellRendererText()
