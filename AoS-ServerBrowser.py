@@ -195,8 +195,6 @@ class Base:
         # Contain everything in a single Vbox
         self.window.add(self.vbox)
         self.window.show_all()
-        
-        
 
     def main(self):
         gtk.main()
