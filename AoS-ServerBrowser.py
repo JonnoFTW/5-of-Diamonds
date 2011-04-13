@@ -92,7 +92,7 @@ class Base:
             webbrowser.open_new_tab('http://ace-spades.com/')
         elif data == '5od':
             webbrowser.open_new_tab('http://www.reddit.com/r/AceOfSpades/comments/gouh3/update_aos_server_browser/')
-        return true
+        return True
     
     def joinGame(self,widget, row,col):
         model = widget.get_model()
