@@ -52,6 +52,32 @@ class Base:
     
     def destroy(self, widget, data=None):
         gtk.main_quit()
+    def loadConfig(self):
+        try:
+            f = open(aos_path+'\'config.ini','r')
+            lines = f.readlines()
+            self.xresE.set_text(lines[0])
+            self.yresE.set_text(lines[1])
+            self.nameE.set_text(lines[3])
+            self.volE.set_text(lines[2])
+            self.statusbar.push(0,"Loaded config.ini successfully")
+            f.close()
+        except Exception,e:
+            self.statusbar.push(0,str(e))
+
+    def updateConfig(self,widget,data=None):
+        # Update the config file
+        try:
+            x = self.xresE.get_text()
+            y = self.yresE.get_text()
+            name = self.nameE.get_text()
+            vol = self.volE.get_text()
+            f = open(aos_path+'\'config.ini','w')
+            f.write('\n'.join(['xres '+x,'yres '+y,'vol '+vol,'name '+name]))
+            f.close()
+            self.statusbar.push(0,"Config updated successfully")            
+        except Exception, e:
+            self.statusbar.push(0,str(e))    
         
     def joinGame(self,widget, row,col):
         model = widget.get_model()
@@ -118,11 +144,44 @@ class Base:
         self.refreshB = gtk.Button("Refresh")
         self.refreshB.connect("clicked",self.refresh,None)
 
-
-
+        self.saveB = gtk.Button("Save Config")
+        self.saveB.connect("clicked",self.updateConfig,None)
         
-
-
+        #stick the buttons in a frame at the bottom of the window
+        #use a hbox of 3 vboxes
+        # Could probably refactor this with some lists and iterations
+        self.frame = gtk.Frame("Game Config")
+        self.xresE = gtk.Entry()
+        self.yresE = gtk.Entry()
+        self.nameE = gtk.Entry()
+        self.volE = gtk.Entry()
+        self.lXres = gtk.Label("X Res")
+        self.lYres = gtk.Label("Y Res")
+        self.lName = gtk.Label("Name")
+        self.lVolume = gtk.Label("Volume")
+        
+        self.forms = gtk.HBox()
+        self.xbox = gtk.VBox(False,5)
+        self.ybox = gtk.VBox(False,5)
+        self.nbox = gtk.VBox(False,5)
+        self.volbox = gtk.VBox(False,5)
+        
+        self.xbox.pack_start(self.lXres,False,False,0)
+        self.xbox.pack_start(self.xresE,False,False,0)
+        
+        self.ybox.pack_start(self.lYres,False,False,0)
+        self.ybox.pack_start(self.yresE,False,False,0)
+        
+        self.nbox.pack_start(self.lName,False,False,0)
+        self.nbox.pack_start(self.nameE,False,False,0)
+                        
+        self.volbox.pack_start(self.lVolume,False,False,0)
+        self.volbox.pack_start(self.volE,False,False,0)
+            
+        # Add the boxes to the frame        
+        for i in [self.xbox,self.ybox,self.nbox,self.volbox]:
+            self.frame.add(i)
+        self.loadConfig()    
         self.vbox = gtk.VBox(False,5)
         self.hbox = gtk.HBox()
         self.hbox.set_spacing(3)
@@ -130,6 +189,7 @@ class Base:
         self.hbox.pack_start(self.refreshB,False,False,0)
         self.vbox.pack_start(self.hbox,False,False,0)
         self.vbox.pack_start(self.sw,True,True,0)
+        self.vbox.pack_start(self.frame,True,True,0)
         self.vbox.pack_start(self.statusbar, False, False, 0)
 
         # Contain everything in a single Vbox
