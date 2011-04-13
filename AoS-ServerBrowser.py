@@ -22,7 +22,6 @@ class Update(threading.Thread):
          self.statusbar = statusbar
      
      def run(self):
-         print 'running thread'
          self.list.clear()
          gtk.gdk.threads_enter()
          try:
@@ -62,9 +61,7 @@ class Base:
             subprocess.Popen([aos_path, '-'+model[row][0]])
         except OSError,e:
             self.statusbar.push(0,str(e))
-            #was: self.statusbar.push(0,e)
-            #This caused a crash on systems where AoS was in a different directory.
-            #Also wrapped "e" in str() so the error was actually pushed. ~flags
+        
         return True
     
     def refresh(self,widget=None,data=None):
