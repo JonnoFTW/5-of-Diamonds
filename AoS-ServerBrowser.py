@@ -48,10 +48,8 @@ class Update(threading.Thread):
                     'playing':p,
                     'name':n,
                     'url':u})
-            #self.list.clear()
-            #for i in servers:
-            #    self.liststore.append([i['url'],i['playing'],i['max'],i['name'],True])
-         
+            self.statusbar.push(0,"Updated successfully")
+            return True         
          except:
             pass
          
@@ -108,6 +106,7 @@ class Base:
         #    #update the server list with error message
         #    self.statusbar.push(0,"Updating failed")
 
+
     def draw_columns(self,treeview):
         rt = gtk.CellRendererText()
         self.tvurl = gtk.TreeViewColumn("URL",rt, text=0)
@@ -133,7 +132,7 @@ class Base:
             self.window.set_icon_from_file("diamonds.png")
         except Exception, e:
             print e.message
-        
+          #  sys.exit(1)
         self.window.connect("delete_event",self.delete_event)
         self.window.connect("destroy",self.destroy)
         self.window.set_border_width(10)
@@ -142,13 +141,13 @@ class Base:
         self.sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         
-        self.liststore = gtk.ListStore(str, str, str,str, 'gboolean')
+        self.liststore = gtk.ListStore(str, int, int,str, 'gboolean')
         self.treeview = gtk.TreeView(self.liststore)
         self.refresh()
         self.treeview.connect("row-activated",self.joinGame)
         self.treeview.set_search_column(0)
         self.draw_columns(self.treeview)
-        
+
         self.sw.add(self.treeview)
         self.table = gtk.Table(2,2)
         self.exitB = gtk.Button(stock=gtk.STOCK_CLOSE)
@@ -156,7 +155,12 @@ class Base:
         
         self.refreshB = gtk.Button("Refresh")
         self.refreshB.connect("clicked",self.refresh,None)
+
+
+
         
+
+
         self.vbox = gtk.VBox(False,5)
         self.hbox = gtk.HBox()
         self.hbox.set_spacing(3)
