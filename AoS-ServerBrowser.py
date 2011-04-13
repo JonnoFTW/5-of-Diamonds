@@ -9,9 +9,6 @@ import threading
 
 gtk.gdk.threads_init()
 
-#Following bits of code were written by flags (not_mad_just_upset on reddit)
-#Contact: flags@srsfckn.biz
-#This grabs the path to AoS from the registry.
 try:
 	aos_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Classes\aos\shell\open\command')
 	aos_path = _winreg.EnumValue(aos_key,0)[1].split('\" \"')[0][1:]
@@ -19,18 +16,15 @@ except:
 	aos_path = 'C:\Program Files\Ace of Spades\client.exe'
 
 class Update(threading.Thread):
-     def __init__(self, list):
+     def __init__(self, list, statusbar):
          super(Update, self).__init__()
          self.list = list
-     
-     #def add_label(self, counter):
-     #    self.label.set_text("Counter: %i" % counter)
-     #    return False
+         self.statusbar = statusbar
      
      def run(self):
          print 'running thread'
          self.list.clear()
-         gtk.threads_enter()
+         gtk.gdk.threads_enter()
          try:
             servers = []
             page = urllib.urlopen('http://ace-spades.com/').readlines()
@@ -43,18 +37,16 @@ class Update(threading.Thread):
                 m = curr[1][0:curr[1].find('<')]
                 u = i[i.find('"')+1:i.rfind('"')]
                 n = i[i.find('>')+1:i.rfind('<')-4]
-                self.list.append({
-                    'max':m,
-                    'playing':p,
-                    'name':n,
-                    'url':u})
+                print 'adding'
+                self.list.append([u,int(p),int(m),n,True])
             self.statusbar.push(0,"Updated successfully")
             return True         
-         except:
-            pass
+         except Exception, e:
+            print e
+            self.statusbar.push(0,"Updating failed (%s)" % (str(e)))
          
          finally:
-            gtk.threads_enter()
+            gtk.gdk.threads_leave()
 
 class Base:
     def delete_event(self, widget,event, data=None):
@@ -77,7 +69,8 @@ class Base:
         return True
     
     def refresh(self,widget=None,data=None):
-        t = Update(self.liststore)
+        self.liststore.append(['test',1,32,'test',True])
+        t = Update(self.liststore,self.statusbar)
         t.start()
         #try:
         #    servers = []
