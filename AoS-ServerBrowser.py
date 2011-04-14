@@ -133,7 +133,7 @@ class Base:
         return True
     
     def refresh(self,widget=None,data=None):
-        self.liststore.append(['Loading',0,0,0,'Refreshing',True])
+        #self.liststore.append(['Loading',0,0,0,'Refreshing',True])
         t = Update(self.liststore,self.statusbar)
         t.start()
         return True
