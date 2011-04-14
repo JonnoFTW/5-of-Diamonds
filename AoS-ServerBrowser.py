@@ -4,21 +4,33 @@ import subprocess
 pygtk.require('2.0')
 import gtk
 import urllib
-import _winreg
 import threading
 import webbrowser
+import os
+
+#It's safe to assume we're using a Linux system if importing _winreg fails
+try:
+	import _winreg
+	onLinux = False
+except:
+	onLinux = True
+
 
 gtk.gdk.threads_init()
 global aos_path
 global config_path
-try:
-    aos_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Classes\aos\shell\open\command')
-    aos_path = _winreg.EnumValue(aos_key,0)[1].split('\" \"')[0][1:]
 
-    config_path = aos_path.replace('client.exe','config.ini')
-except:
-    aos_path = 'C:\Program Files\Ace of Spades\client.exe'
-    config_path = aos_path.replace('client.exe','config.ini')
+if onLinux:
+	#find some way to access Wine's registry. For now, just take a guess.
+	aos_path = os.path.expanduser('~')+'/.wine/drive_c/Program Files/Ace of Spades/client.exe'
+else:
+	try:
+		aos_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Classes\aos\shell\open\command')
+		aos_path = _winreg.EnumValue(aos_key,0)[1].split('\" \"')[0][1:]
+	except:
+		aos_path = 'C:\Program Files\Ace of Spades\client.exe'
+
+config_path = aos_path.replace('client.exe','config.ini')
 
 print "AoS client path: "+aos_path
 print "AoS config path: "+config_path
@@ -100,8 +112,13 @@ class Base:
     def joinGame(self,widget, row,col):
         model = widget.get_model()
         try:
+            global aos_path
+            global onLinux
             self.statusbar.push(0,"Launching game from: "+aos_path)
-            subprocess.Popen([aos_path, '-'+model[row][0]])
+            if onLinux:
+                subprocess.Popen(['wine', aos_path, '-'+model[row][0]])
+            else:
+                subprocess.Popen([aos_path, '-'+model[row][0]])
         except OSError,e:
             self.statusbar.push(0,str(e)+ '| Looked in '+aos_path)
         return True
@@ -116,7 +133,7 @@ class Base:
         return True
     
     def refresh(self,widget=None,data=None):
-        self.liststore.append(['Loading',0,0,0,'Refreshing',True])
+        #self.liststore.append(['Loading',0,0,0,'Refreshing',True])
         t = Update(self.liststore,self.statusbar)
         t.start()
         return True
@@ -278,4 +295,3 @@ class Base:
 if __name__ == "__main__":
     base = Base()
     base.main()
-
