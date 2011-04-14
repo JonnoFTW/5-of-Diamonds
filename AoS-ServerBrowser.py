@@ -9,14 +9,19 @@ import threading
 import webbrowser
 
 gtk.gdk.threads_init()
-
+global aos_path
+global config_path
 try:
     aos_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Classes\aos\shell\open\command')
     aos_path = _winreg.EnumValue(aos_key,0)[1].split('\" \"')[0][1:]
+
     config_path = aos_path.replace('client.exe','config.ini')
 except:
     aos_path = 'C:\Program Files\Ace of Spades\client.exe'
     config_path = aos_path.replace('client.exe','config.ini')
+
+print "AoS client path: "+aos_path
+print "AoS config path: "+config_path
 
 class Update(threading.Thread):
      def __init__(self, list, statusbar):
@@ -30,24 +35,22 @@ class Update(threading.Thread):
          try:
             servers = []
             page = urllib.urlopen('http://ace-spades.com/').readlines()
-            s = page[page.index("<br>Server Listing:</p>\n")+2:-2]
+            s = page[page.index("Server Listing:<br>\n")+2:-2]
             # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
             for i in s:
                 ratio = i[0:5].split('/')
                 p = ratio[0].replace(' ','')
                 m = ratio[1].replace(' ','')
-                u = i[i.find('"')+1:i.rfind('"')]
-                n = i[i.find('>')+1:i.rfind('<')-4]
+                u = i[i.find('"')+1:i.find('>')-1]
+                n = i[i.find('>')+1:i.rfind('<')]
                 if i.find('<') >= 8 :
                     ping = i[6:i.find('<')]
                 else:
                     ping = 0
-                    
                 self.list.append([u,int(ping),int(p),int(m),n,True])
             self.statusbar.push(0,"Updated successfully")
             return True
          except Exception, e:
-            print e
             self.statusbar.push(0,"Updating failed (%s)" % (str(e)))
 
          finally:
@@ -71,7 +74,7 @@ class Base:
             self.statusbar.push(0,"Loaded config.ini successfully")
             f.close()
         except Exception,e:
-            self.statusbar.push(0,str(e))
+            self.statusbar.push(0,str(e)+ '| Tried: '+aos_path)
 
     def updateConfig(self,widget,data=None):
         # Update the config file
@@ -83,10 +86,10 @@ class Base:
             f = open(config_path,'w')
             f.write('\n'.join(['xres '+x,'yres '+y,'vol '+vol,'name '+name]))
             f.close()
-            self.statusbar.push(0,"Config updated successfully")
-
+            self.statusbar.push(0,"Config updated successfully in: "+config_path )
         except Exception, e:
-            self.statusbar.push(0,str(e))
+            self.statusbar.push(0,str(e)+ '| Tried: '+aos_path)
+            
     def openPage(self,widget,data=None):
         if data == 'aos':
             webbrowser.open_new_tab('http://ace-spades.com/')
@@ -97,19 +100,46 @@ class Base:
     def joinGame(self,widget, row,col):
         model = widget.get_model()
         try:
-            global aos_path
-            self.statusbar.push(0,"Launching game")
+            self.statusbar.push(0,"Launching game from: "+aos_path)
             subprocess.Popen([aos_path, '-'+model[row][0]])
         except OSError,e:
-            self.statusbar.push(0,str(e))
+            self.statusbar.push(0,str(e)+ '| Looked in '+aos_path)
+        return True
+
+        
+    def launchServer(self,widget, data=None):
+        try:
+            self.statusbar.push(0,"Launching server from: "+aos_path[:-10]+'server.exe')
+            subprocess.Popen([aos_path[:-10]+'server.exe'])
+        except OSError,e:
+            self.statusbar.push(0,str(e)+ '| Looked in '+aos_path[:-10]+'server.exe')
         return True
     
     def refresh(self,widget=None,data=None):
-        self.liststore.append(['test',255,1,32,'test',True])
+        self.liststore.append(['Loading',0,0,0,'Refreshing',True])
         t = Update(self.liststore,self.statusbar)
         t.start()
         return True
-
+    
+    def pop_path(self,widget=None,data=None):
+        #popup a window asking for the directory
+        self.pop = gtk.FileChooserDialog(title="Where did you install AoS?",
+                                         action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                                         buttons = (gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+        response = self.pop.run()
+        if response == gtk.RESPONSE_OK or response == gtk.STOCK_OPEN:
+            self.set_path(self.pop.get_filename())
+        self.pop.destroy()
+        return True
+    
+    def set_path(self,data=aos_path):
+        aos_path = data+'\\client.exe'
+        config_path = aos_path.replace('client.exe','config.ini')
+        self.statusbar.push(0,'Now working from: '+aos_path[:-10])
+        print "AoS client path: "+aos_path
+        print "AoS config path: "+config_path        
+        return True
+    
     def draw_columns(self,treeview):
         rt = gtk.CellRendererText()
         self.tvurl = gtk.TreeViewColumn("URL",rt, text=0)
@@ -125,7 +155,7 @@ class Base:
         self.tvcurr.set_sort_column_id(3)
         rt = gtk.CellRendererText()
         self.tvname = gtk.TreeViewColumn("Name",rt, text=4)
-        self.tvname.set_sort_column_id(4)
+        #self.tvname.set_sort_column_id(4)
         for i in [self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname]:
             treeview.append_column(i)
                 
@@ -137,8 +167,7 @@ class Base:
         try:
             self.window.set_icon_from_file("diamonds.png")
         except Exception, e:
-            print e.message
-          # sys.exit(1)
+            self.statusbar.push(0,"Error: "+str(e))
         self.window.connect("delete_event",self.delete_event)
         self.window.connect("destroy",self.destroy)
         self.window.set_border_width(10)
@@ -164,12 +193,18 @@ class Base:
 
         self.saveB = gtk.Button("Save Config")
         self.saveB.connect("clicked",self.updateConfig,None)
+
+        self.serverB = gtk.Button("Launch Server")
+        self.serverB.connect("clicked",self.launchServer,None)
         
         self.webB = gtk.Button("AoS Webpage")
         self.webB.connect("clicked",self.openPage,'aos')
 
         self.appB = gtk.Button("Get Latest 5oD")
         self.appB.connect("clicked",self.openPage,'5od')
+
+        self.pathB = gtk.Button("Find Client.exe")
+        self.pathB.connect("clicked",self.pop_path,None)
         
         #stick the buttons in a frame at the bottom of the window
         #use a hbox of 3 vboxes
@@ -203,7 +238,7 @@ class Base:
         self.aboutFrame = gtk.Frame("About")
         self.abvbox = gtk.VBox(True,3)
         
-        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.4\n2011\nGot bugs? Get the latest version")
+        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.6\n2011\nGot bugs? Get the latest version")
         self.abtlbl.set_justify(gtk.JUSTIFY_CENTER)
         self.abvbox.pack_start(self.abtlbl)
 
@@ -223,6 +258,8 @@ class Base:
         self.hbox.pack_start(self.saveB,False,False,0)
         self.hbox.pack_start(self.webB,False,False,0)
         self.hbox.pack_start(self.appB,False,False,0)
+        self.hbox.pack_start(self.pathB,False,False,0)
+        self.hbox.pack_start(self.serverB,False,False,0) 
         self.vbox.pack_start(self.hbox,False,False,0)
         self.vbox.pack_start(self.sw,True,True,0)
         self.vbox.pack_start(self.frame,False,False,0)
@@ -234,9 +271,10 @@ class Base:
 
 
     def main(self):
-        gtk.main()
-
+        try:
+            gtk.main()
+        except:
+            self.statusbar.push(0,"Error: "+str(e))    
 if __name__ == "__main__":
     base = Base()
     base.main()
-
