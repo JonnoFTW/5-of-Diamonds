@@ -5,7 +5,8 @@ A server browser for Ace of Spades (http://ace-spades.net)
 h3. Features
 * Pulls the latest server list from the game page
 * Click on server to launch game
-
+* Button to launch the server
+* Button to find the client folder if it can't be found 
 h3. Todo
-* Add in forms for updating the config.ini file
-* Make the buttons asynchronous
+* Work with Wine
+* Mod manager
