@@ -10,32 +10,50 @@ import os
 
 #It's safe to assume we're using a Linux system if importing _winreg fails
 try:
-	import _winreg
-	onLinux = False
+    import _winreg
+    onLinux = False
 except:
-	onLinux = True
+    onLinux = True
 
 gtk.gdk.threads_init()
 global aos_path
 global config_path
 
-
-blacklist = ['France','Only Manly Men Allowed']
+blacklist = []
 
 if onLinux:
-	#find some way to access Wine's registry. For now, just take a guess.
-	aos_path = os.path.expanduser('~')+'/.wine/drive_c/Program Files/Ace of Spades/client.exe'
+    #find some way to access Wine's registry. For now, just take a guess.
+    aos_path = os.path.expanduser('~')+'/.wine/drive_c/Program Files/Ace of Spades/client.exe'
 else:
-	try:
-		aos_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Classes\aos\shell\open\command')
-		aos_path = _winreg.EnumValue(aos_key,0)[1].split('\" \"')[0][1:]
-	except:
-		aos_path = 'C:\Program Files\Ace of Spades\client.exe'
+    try:
+        aos_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Classes\aos\shell\open\command')
+        aos_path = _winreg.EnumValue(aos_key,0)[1].split('\" \"')[0][1:]
+    except:
+        aos_path = 'C:\Program Files\Ace of Spades\client.exe'
 
 config_path = aos_path.replace('client.exe','config.ini')
+blacklist_path = aos_path.replace('client.exe','blacklist.txt')
 
 print "AoS client path: "+aos_path
 print "AoS config path: "+config_path
+print "5oD blacklist path: "+blacklist_path
+
+def loadBlacklist():
+	try:
+		_file = open(blacklist_path,'r')
+		for line in _file.readlines():
+			blacklist.append(line.split('\n')[0])
+		print 'Loaded...'
+	except:
+		print 'Creating blacklist file: %s' % (blacklist_path)
+		_file = open(blacklist_path,'w')
+		_file.write()
+		_file.close()
+		loadBlacklist()
+	finally:
+		print blacklist
+		
+loadBlacklist()
 
 class Update(threading.Thread):
      def __init__(self, list, statusbar):
@@ -93,7 +111,7 @@ class Base:
             f.close()
         except Exception,e:
             self.statusbar.push(0,str(e)+ '| Tried: '+aos_path)
-
+    
     def updateConfig(self,widget,data=None):
         # Update the config file
         try:
