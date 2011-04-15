@@ -15,10 +15,12 @@ try:
 except:
 	onLinux = True
 
-
 gtk.gdk.threads_init()
 global aos_path
 global config_path
+
+
+blacklist = ['France','Only Manly Men Allowed']
 
 if onLinux:
 	#find some way to access Wine's registry. For now, just take a guess.
@@ -44,6 +46,7 @@ class Update(threading.Thread):
      def run(self):
          self.list.clear()
          gtk.gdk.threads_enter()
+         global blacklist
          try:
             servers = []
             page = urllib.urlopen('http://ace-spades.com/').readlines()
@@ -59,7 +62,10 @@ class Update(threading.Thread):
                     ping = i[6:i.find('<')]
                 else:
                     ping = 0
-                self.list.append([u,int(ping),int(p),int(m),n,True])
+                if not n in blacklist:
+                    self.list.append([u,int(ping),int(p),int(m),n,True])
+                else:
+                    print 'Blacklisted server found: %s' % (n)
             self.statusbar.push(0,"Updated successfully")
             return True
          except Exception, e:
