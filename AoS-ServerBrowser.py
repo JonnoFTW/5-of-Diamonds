@@ -39,28 +39,31 @@ print "AoS config path: "+config_path
 print "5oD blacklist path: "+blacklist_path
 
 def loadBlacklist():
-	try:
-		_file = open(blacklist_path,'r')
-		for line in _file.readlines():
-			blacklist.append(line.split('\n')[0])
-		print 'Loaded...'
-	except:
-		print 'Creating blacklist file: %s' % (blacklist_path)
-		_file = open(blacklist_path,'w')
-		_file.write()
-		_file.close()
-		loadBlacklist()
-	finally:
-		print blacklist
-		
+    try:
+            lines = open(blacklist_path,'r').readlines()
+            for i in lines:
+                blacklist.append(i)
+            print 'Loaded...'
+    except:
+            try:
+                print 'Creating blacklist file: %s' % (blacklist_path)
+                _file = open(blacklist_path,'w')
+                _file.close()
+                loadBlacklist()
+            except:
+                print "Could not make blacklist file"
+    finally:
+        print blacklist
+        
 loadBlacklist()
 
 class Update(threading.Thread):
-     def __init__(self, list, statusbar):
+     def __init__(self, list, statusbar,checks):
          super(Update, self).__init__()
          self.list = list
          self.statusbar = statusbar
-     
+         self.checks = [c.get_label() for c in checks]
+         
      def run(self):
          self.list.clear()
          gtk.gdk.threads_enter()
@@ -72,18 +75,29 @@ class Update(threading.Thread):
             # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
             for i in s:
                 ratio = i[0:5].split('/')
-                p = ratio[0].replace(' ','')
-                m = ratio[1].replace(' ','')
+                p = int(ratio[0].replace(' ',''))
+                m = int(ratio[1].replace(' ',''))
                 u = i[i.find('"')+1:i.find('>')-1]
                 n = i[i.find('>')+1:i.rfind('<')]
                 if i.find('<') >= 8 :
-                    ping = i[6:i.find('<')]
+                    ping = int(i[6:i.find('<')])
                 else:
                     ping = 0
                 if not n in blacklist:
-                    self.list.append([u,int(ping),int(p),int(m),n,True])
-                else:
-                    print 'Blacklisted server found: %s' % (n)
+                    if "Full" in self.checks and "Empty" in self.checks:
+                        if p != m and p != 0:
+                            self.list.append([u,ping,p,m,n,True])
+                            continue
+                    elif "Empty" in self.checks:
+                        if p != 0:
+                            self.list.append([u,ping,p,m,n,True])
+                            continue
+                    elif "Full" in self.checks:
+                        if p != m:
+                            self.list.append([u,ping,p,m,n,True])
+                            continue                    
+                    else:
+                        self.list.append([u,ping,p,m,n,True])
             self.statusbar.push(0,"Updated successfully")
             return True
          except Exception, e:
@@ -135,14 +149,16 @@ class Base:
     
     def joinGame(self,widget, row,col):
         model = widget.get_model()
+        print 'joining ' + model[row][0]
+        
         try:
             global aos_path
             global onLinux
-            self.statusbar.push(0,"Launching game from: "+aos_path)
             if onLinux:
                 subprocess.Popen(['wine', aos_path, '-'+model[row][0]])
             else:
                 subprocess.Popen([aos_path, '-'+model[row][0]])
+            self.statusbar.push(0,"Launching game from: "+aos_path)
         except OSError,e:
             self.statusbar.push(0,str(e)+ '| Looked in '+aos_path)
         return True
@@ -158,7 +174,7 @@ class Base:
     
     def refresh(self,widget=None,data=None):
         #self.liststore.append(['Loading',0,0,0,'Refreshing',True])
-        t = Update(self.liststore,self.statusbar)
+        t = Update(self.liststore,self.statusbar,[r for r in self.checks if r.get_active()])
         t.start()
         return True
     
@@ -180,6 +196,32 @@ class Base:
         print "AoS client path: "+aos_path
         print "AoS config path: "+config_path        
         return True
+
+    def blacklistServer(self,widget, data=None):
+        model = widget.get_model()
+        try:
+            blacklist.append(model[row][4])
+            f = open(blacklist_path,'a')
+            f.write(model[row][4]+'\n')
+            f.close()
+            self.statusbar.push(0,model[row][4]+' added to blacklist')
+        except:
+            self.statusbar.push(0,'Failed to add to blacklist: '+model[row][4])
+
+    def serverListEvent(self,treeview,event):
+        x = int(event.x)
+        y = int(event.y)
+        time = event.time
+        pthinfo = treeview.get_path_at_pos(x, y)
+        if pthinfo is not None:
+            path, col, cellx, celly = pthinfo
+            treeview.grab_focus()
+            treeview.set_cursor( path, col, 0)
+            if event.button == 3:            
+                    self.blackmenu.popup( None, None, None, event.button, time)
+            elif event.button == 1:
+                    self.joinGame(treeview,col,None)
+        return True            
     
     def draw_columns(self,treeview):
         rt = gtk.CellRendererText()
@@ -203,7 +245,7 @@ class Base:
     
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self.window.set_size_request(550,450)
+        self.window.set_size_request(550,650)
         self.window.set_title("5 of Diamonds")
         try:
             self.window.set_icon_from_file("diamonds.png")
@@ -216,14 +258,21 @@ class Base:
         self.sw = gtk.ScrolledWindow()
         self.sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+
+        self.blackmenu = gtk.Menu()
+        self.bitem = gtk.MenuItem("Blacklist server")
+        self.blackmenu.append(self.bitem)
+        self.bitem.connect("activate",self.blacklistServer)
+        self.bitem.show()
         
         self.liststore = gtk.ListStore(str,int, int, int,str, 'gboolean')
         self.treeview = gtk.TreeView(self.liststore)
-        self.refresh()
+
         self.treeview.connect("row-activated",self.joinGame)
+        self.treeview.connect("button_press_event",self.serverListEvent)
         self.treeview.set_search_column(0)
         self.draw_columns(self.treeview)
-
+        
         self.sw.add(self.treeview)
         self.table = gtk.Table(2,2)
         self.exitB = gtk.Button(stock=gtk.STOCK_CLOSE)
@@ -279,11 +328,26 @@ class Base:
         self.aboutFrame = gtk.Frame("About")
         self.abvbox = gtk.VBox(True,3)
         
-        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.6\n2011\nGot bugs? Get the latest version")
+        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.7\n2011\nGot bugs? Get the latest version")
         self.abtlbl.set_justify(gtk.JUSTIFY_CENTER)
         self.abvbox.pack_start(self.abtlbl)
 
         self.aboutFrame.add(self.abvbox)
+
+       # self.radios = []
+       #Pass this info into the update so it filters correctly
+        self.filterFrame = gtk.Frame("Filters")
+        self.filterBox = gtk.HBox()
+        self.checkFull = gtk.CheckButton("Full",True)
+        self.checkEmpty = gtk.CheckButton("Empty",True)
+        self.checks = [self.checkFull,self.checkEmpty]
+        for i in self.checks:
+            self.filterBox.pack_start(i,False,False,0)
+        self.helplbl = gtk.Label("Refresh after selecting filters")
+        self.helplbl.set_justify(gtk.JUSTIFY_RIGHT)
+        self.filterBox.pack_start(self.helplbl,True,True,0)
+        self.filterFrame.add(self.filterBox)
+
         
         # Add the boxes to the frame
         for i in [self.box1,self.box2]:
@@ -294,22 +358,20 @@ class Base:
         self.vbox = gtk.VBox(False,5)
         self.hbox = gtk.HBox()
         self.hbox.set_spacing(3)
-        self.hbox.pack_start(self.exitB,False,False,0)
-        self.hbox.pack_start(self.refreshB,False,False,0)
-        self.hbox.pack_start(self.saveB,False,False,0)
-        self.hbox.pack_start(self.webB,False,False,0)
-        self.hbox.pack_start(self.appB,False,False,0)
-        self.hbox.pack_start(self.pathB,False,False,0)
-        self.hbox.pack_start(self.serverB,False,False,0) 
+
+        buttons =[self.exitB,self.refreshB,self.saveB,self.webB,self.appB,self.pathB,self.serverB]
+        for i in buttons:
+            self.hbox.pack_start(i,False,False,0) 
         self.vbox.pack_start(self.hbox,False,False,0)
         self.vbox.pack_start(self.sw,True,True,0)
         self.vbox.pack_start(self.frame,False,False,0)
+        self.vbox.pack_start(self.filterFrame,False,False,0)
         self.vbox.pack_start(self.statusbar, False, False, 0)
 
         # Contain everything in a single Vbox
         self.window.add(self.vbox)
         self.window.show_all()
-
+        self.refresh()
 
     def main(self):
         try:
