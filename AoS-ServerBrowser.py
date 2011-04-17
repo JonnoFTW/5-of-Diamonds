@@ -20,7 +20,7 @@ global aos_path
 global config_path
 
 blacklist = []
-
+favlist = []
 if onLinux:
     #find some way to access Wine's registry. For now, just take a guess.
     aos_path = os.path.expanduser('~')+'/.wine/drive_c/Program Files/Ace of Spades/client.exe'
@@ -33,11 +33,12 @@ else:
 
 config_path = aos_path.replace('client.exe','config.ini')
 blacklist_path = aos_path.replace('client.exe','blacklist.txt')
+favlist_path = aos_path.replace('client.exe','favourites.txt')
 
 print "AoS client path: "+aos_path
 print "AoS config path: "+config_path
 print "5oD blacklist path: "+blacklist_path
-
+print "5oD blacklist path: "+favlist_path
 def isascii(x):
     try:
         x.decode('ascii')
@@ -64,7 +65,25 @@ def loadBlacklist():
     finally:
         print blacklist
         
+def loadFavlist():
+    try:
+            lines = open(favlist_path,'r').readlines()
+            for i in lines:
+                favlist.append(i)
+            print 'Loaded...'
+    except:
+            try:
+                print 'Creating Favourites list file: %s' % (favlist_path)
+                _file = open(favlist_path,'w')
+                _file.close()
+                loadFavlist()
+            except:
+                print "Could not make Favourites file"
+    finally:
+        print favlist
+        
 loadBlacklist()
+loadFavlist()
 
 class Update(threading.Thread):
      def __init__(self, list, statusbar,checks):
@@ -89,6 +108,7 @@ class Update(threading.Thread):
                     m = int(ratio[1].replace(' ',''))
                     u = i[i.find('"')+1:i.find('>')-1]
                     n = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
+                    fav = n in favlist
                     if i.find('<') >= 8 :
                         ping = int(i[6:i.find('<')])
                     else:
