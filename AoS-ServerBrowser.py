@@ -38,6 +38,15 @@ print "AoS client path: "+aos_path
 print "AoS config path: "+config_path
 print "5oD blacklist path: "+blacklist_path
 
+def isascii(x):
+    try:
+        x.decode('ascii')
+    except UnicodeDecodeError:
+        return False
+    else:
+        return True
+
+
 def loadBlacklist():
     try:
             lines = open(blacklist_path,'r').readlines()
@@ -71,33 +80,36 @@ class Update(threading.Thread):
          try:
             servers = []
             page = urllib.urlopen('http://ace-spades.com/').readlines()
-            s = page[page.index("Server Listing:<br>\n")+2:-2]
+            s = page[page.index("<pre>\n")+1:-2]
             # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
             for i in s:
-                ratio = i[0:5].split('/')
-                p = int(ratio[0].replace(' ',''))
-                m = int(ratio[1].replace(' ',''))
-                u = i[i.find('"')+1:i.find('>')-1]
-                n = i[i.find('>')+1:i.rfind('<')]
-                if i.find('<') >= 8 :
-                    ping = int(i[6:i.find('<')])
-                else:
-                    ping = 0
-                if not n in blacklist:
-                    if "Full" in self.checks and "Empty" in self.checks:
-                        if p != m and p != 0:
-                            self.list.append([u,ping,p,m,n,True])
-                            continue
-                    elif "Empty" in self.checks:
-                        if p != 0:
-                            self.list.append([u,ping,p,m,n,True])
-                            continue
-                    elif "Full" in self.checks:
-                        if p != m:
-                            self.list.append([u,ping,p,m,n,True])
-                            continue                    
+                try:
+                    ratio = i[0:5].split('/')
+                    p = int(ratio[0].replace(' ',''))
+                    m = int(ratio[1].replace(' ',''))
+                    u = i[i.find('"')+1:i.find('>')-1]
+                    n = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
+                    if i.find('<') >= 8 :
+                        ping = int(i[6:i.find('<')])
                     else:
-                        self.list.append([u,ping,p,m,n,True])
+                        ping = 0
+                    if not n in blacklist:
+                        if "Full" in self.checks and "Empty" in self.checks:
+                            if p != m and p != 0:
+                                self.list.append([u,ping,p,m,n,True])
+                                continue
+                        elif "Empty" in self.checks:
+                            if p != 0:
+                                self.list.append([u,ping,p,m,n,True])
+                                continue
+                        elif "Full" in self.checks:
+                            if p != m:
+                                self.list.append([u,ping,p,m,n,True])
+                                continue                    
+                        else:
+                            self.list.append([u,ping,p,m,n,True])
+                except:
+                    print 'Skipped invalid server'
             self.statusbar.push(0,"Updated successfully")
             return True
          except Exception, e:
@@ -147,17 +159,14 @@ class Base:
             webbrowser.open_new_tab('http://www.reddit.com/r/AceOfSpades/comments/gouh3/update_aos_server_browser/')
         return True
     
-    def joinGame(self,widget, row,col):
-        model = widget.get_model()
-        print 'joining ' + model[row][0]
-        
+    def joinGame(self,url):      
         try:
             global aos_path
             global onLinux
             if onLinux:
-                subprocess.Popen(['wine', aos_path, '-'+model[row][0]])
+                subprocess.Popen(['wine', aos_path, '-'+url])
             else:
-                subprocess.Popen([aos_path, '-'+model[row][0]])
+                subprocess.Popen([aos_path, '-'+url])
             self.statusbar.push(0,"Launching game from: "+aos_path)
         except OSError,e:
             self.statusbar.push(0,str(e)+ '| Looked in '+aos_path)
@@ -197,8 +206,9 @@ class Base:
         print "AoS config path: "+config_path        
         return True
 
-    def blacklistServer(self,widget, data=None):
-        model = widget.get_model()
+    def blacklistServer(self,widget):
+        selection = self.treeview.get_selection()
+        model = selection.get_model()
         try:
             blacklist.append(model[row][4])
             f = open(blacklist_path,'a')
@@ -212,15 +222,20 @@ class Base:
         x = int(event.x)
         y = int(event.y)
         time = event.time
+        model = treeview.get_model()
+
         pthinfo = treeview.get_path_at_pos(x, y)
         if pthinfo is not None:
             path, col, cellx, celly = pthinfo
+            print 'url clicked '+model[col][0]
             treeview.grab_focus()
             treeview.set_cursor( path, col, 0)
+            # Popup menu on right click
             if event.button == 3:            
-                    self.blackmenu.popup( None, None, None, event.button, time)
-            elif event.button == 1:
-                    self.joinGame(treeview,col,None)
+                self.blackmenu.popup( None, None, None, event.button, time)
+            # Join game on double click
+            elif event.type == gtk.gdk._2BUTTON_PRESS:
+                self.joinGame(treeview,model[col][0])
         return True            
     
     def draw_columns(self,treeview):
@@ -268,7 +283,6 @@ class Base:
         self.liststore = gtk.ListStore(str,int, int, int,str, 'gboolean')
         self.treeview = gtk.TreeView(self.liststore)
 
-        self.treeview.connect("row-activated",self.joinGame)
         self.treeview.connect("button_press_event",self.serverListEvent)
         self.treeview.set_search_column(0)
         self.draw_columns(self.treeview)
