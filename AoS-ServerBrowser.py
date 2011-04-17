@@ -53,7 +53,7 @@ def loadBlacklist():
             lines = open(blacklist_path,'r').readlines()
             for i in lines:
                 blacklist.append(i)
-            print 'Loaded...'
+            print 'blacklist Loaded...'
     except:
             try:
                 print 'Creating blacklist file: %s' % (blacklist_path)
@@ -70,7 +70,7 @@ def loadFavlist():
             lines = open(favlist_path,'r').readlines()
             for i in lines:
                 favlist.append(i)
-            print 'Loaded...'
+            print 'Loaded Favourites...'
     except:
             try:
                 print 'Creating Favourites list file: %s' % (favlist_path)
@@ -93,10 +93,10 @@ class Update(threading.Thread):
          self.checks = [c.get_label() for c in checks]
          
      def run(self):
-         self.list.clear()
-         gtk.gdk.threads_enter()
-         global blacklist
-         try:
+        self.list.clear()
+        gtk.gdk.threads_enter()
+        global blacklist
+        try:
             servers = []
             page = urllib.urlopen('http://ace-spades.com/').readlines()
             s = page[page.index("<pre>\n")+1:-2]
@@ -108,7 +108,6 @@ class Update(threading.Thread):
                     m = int(ratio[1].replace(' ',''))
                     u = i[i.find('"')+1:i.find('>')-1]
                     n = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
-                    fav = n in favlist
                     if i.find('<') >= 8 :
                         ping = int(i[6:i.find('<')])
                     else:
@@ -132,11 +131,11 @@ class Update(threading.Thread):
                     print 'Skipped invalid server'
             self.statusbar.push(0,"Updated successfully")
             return True
-         except Exception, e:
+        except Exception, e:
             self.statusbar.push(0,"Updating failed (%s)" % (str(e)))
 
-         finally:
-            gtk.gdk.threads_leave()
+        finally:
+             gtk.gdk.threads_leave()
 
 class Base:
     def delete_event(self, widget,event, data=None):
@@ -192,7 +191,6 @@ class Base:
             self.statusbar.push(0,str(e)+ '| Looked in '+aos_path)
         return True
 
-        
     def launchServer(self,widget, data=None):
         try:
             self.statusbar.push(0,"Launching server from: "+aos_path[:-10]+'server.exe')
@@ -237,7 +235,7 @@ class Base:
         
     def blacklistServer(self,menuitem,*ignore):
         values = self.get_selected_id()
-        name = values[0]
+        name = values[1]
         try:
             blacklist.append(name)
             f = open(blacklist_path,'a')
@@ -263,9 +261,26 @@ class Base:
             # Join game on double click
             elif event.type == gtk.gdk._2BUTTON_PRESS:
                 self.joinGame(model[path][0])
-        return True            
+        return True
+    
+    def on_toggle(self,cell,path_str,model):
+        toggle_item = model.get_value(iter,column)
+        toggle_item = not toggle_item
+
+        if toggle_item:
+            #Add it to the favourite list if it isn't already
+            pass
+        else:
+            #remove it from the favourite list
+            pass
+        model.set(iter,column,toggle_item)
     
     def draw_columns(self,treeview):
+        self.ren = gtk.CellRendererToggle()
+        self.tvfav = gtk.TreeViewColumn('Fav',self.ren)
+        self.tvfav.set_clickable(True)
+        self.ren.connect("toggled",self.on_toggle,treeview.get_model())
+        self.tvfav.set_sort_column_id(4)
         rt = gtk.CellRendererText()
         self.tvurl = gtk.TreeViewColumn("URL",rt, text=0)
         self.tvurl.set_sort_column_id(0)
@@ -274,14 +289,14 @@ class Base:
         self.ping.set_sort_column_id(1)
         rt = gtk.CellRendererText()
         self.tvmax = gtk.TreeViewColumn("Max",rt, text=3)
-        self.tvmax.set_sort_column_id(2)
+        self.tvmax.set_sort_column_id(3)
         rt = gtk.CellRendererText()
         self.tvcurr = gtk.TreeViewColumn("Playing",rt, text=2)
-        self.tvcurr.set_sort_column_id(3)
+        self.tvcurr.set_sort_column_id(2)
         rt = gtk.CellRendererText()
         self.tvname = gtk.TreeViewColumn("Name",rt, text=4)
         #self.tvname.set_sort_column_id(4)
-        for i in [self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname]:
+        for i in [self.tvfav,self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname]:
             treeview.append_column(i)
                 
     
