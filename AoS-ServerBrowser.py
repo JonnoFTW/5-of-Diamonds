@@ -206,36 +206,43 @@ class Base:
         print "AoS config path: "+config_path        
         return True
 
-    def blacklistServer(self,widget):
-        selection = self.treeview.get_selection()
-        model = selection.get_model()
+    def get_selected_id(self):
+        ids = []
+        store, paths = self.treeview.get_selection().get_selected_rows()
+        for path in paths:
+            treeiter = store.get_iter(path)
+            val = store.get_value(treeiter,4)
+            ids.append(val)
+        return ids
+        
+    def blacklistServer(self,menuitem,*ignore):
+        values = self.get_selected_id()
+        name = values[0]
         try:
-            blacklist.append(model[row][4])
+            blacklist.append(name)
             f = open(blacklist_path,'a')
-            f.write(model[row][4]+'\n')
+            f.write(name+'\n')
             f.close()
-            self.statusbar.push(0,model[row][4]+' added to blacklist')
-        except:
-            self.statusbar.push(0,'Failed to add to blacklist: '+model[row][4])
+            self.statusbar.push(0,name+' added to blacklist')
+        except Exception,e:
+            self.statusbar.push(0,'Failed to add to blacklist: '+name+' | '+str(e))
 
     def serverListEvent(self,treeview,event):
         x = int(event.x)
         y = int(event.y)
         time = event.time
         model = treeview.get_model()
-
         pthinfo = treeview.get_path_at_pos(x, y)
         if pthinfo is not None:
             path, col, cellx, celly = pthinfo
-            print 'url clicked '+model[col][0]
             treeview.grab_focus()
             treeview.set_cursor( path, col, 0)
-            # Popup menu on right click
-            if event.button == 3:            
+            # Popup blacklist menu on right click
+            if event.button == 3:
                 self.blackmenu.popup( None, None, None, event.button, time)
             # Join game on double click
             elif event.type == gtk.gdk._2BUTTON_PRESS:
-                self.joinGame(treeview,model[col][0])
+                self.joinGame(model[path][0])
         return True            
     
     def draw_columns(self,treeview):
@@ -260,7 +267,7 @@ class Base:
     
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self.window.set_size_request(550,650)
+        self.window.set_size_request(600,650)
         self.window.set_title("5 of Diamonds")
         try:
             self.window.set_icon_from_file("diamonds.png")
@@ -273,12 +280,6 @@ class Base:
         self.sw = gtk.ScrolledWindow()
         self.sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-
-        self.blackmenu = gtk.Menu()
-        self.bitem = gtk.MenuItem("Blacklist server")
-        self.blackmenu.append(self.bitem)
-        self.bitem.connect("activate",self.blacklistServer)
-        self.bitem.show()
         
         self.liststore = gtk.ListStore(str,int, int, int,str, 'gboolean')
         self.treeview = gtk.TreeView(self.liststore)
@@ -287,6 +288,12 @@ class Base:
         self.treeview.set_search_column(0)
         self.draw_columns(self.treeview)
         
+        self.blackmenu = gtk.Menu()
+        self.bitem = gtk.MenuItem("Blacklist server")
+        self.blackmenu.append(self.bitem)
+        self.bitem.connect("activate",self.blacklistServer)
+        self.bitem.show()        
+
         self.sw.add(self.treeview)
         self.table = gtk.Table(2,2)
         self.exitB = gtk.Button(stock=gtk.STOCK_CLOSE)
@@ -357,7 +364,7 @@ class Base:
         self.checks = [self.checkFull,self.checkEmpty]
         for i in self.checks:
             self.filterBox.pack_start(i,False,False,0)
-        self.helplbl = gtk.Label("Refresh after selecting filters")
+        self.helplbl = gtk.Label("Refresh after selecting filters; rightclick to blacklist a server")
         self.helplbl.set_justify(gtk.JUSTIFY_RIGHT)
         self.filterBox.pack_start(self.helplbl,True,True,0)
         self.filterFrame.add(self.filterBox)
