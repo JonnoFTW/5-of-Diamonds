@@ -86,10 +86,6 @@ def loadFavlist():
 loadBlacklist()
 loadFavlist()
 
-def ip2aos(ip):
-	ip = ip.split('.')
-	return (16777216*int(ip[0]) + 65536*int(ip[1]) + 256*int(ip[2]) + int(ip[3]))
-
 class Update(threading.Thread):
      def __init__(self, list, statusbar,checks):
          super(Update, self).__init__()
@@ -208,6 +204,10 @@ class Base:
         except OSError,e:
             self.statusbar.push(0,str(e)+ '| Looked in '+aos_path)
         return True
+
+    def ip2aos(self,ip):
+        ip = ip.split('.')
+        self.joinGame('aos://%s' % (str(16777216*int(ip[0]) + 65536*int(ip[1]) + 256*int(ip[2]) + int(ip[3]))))
 
     def launchServer(self,widget, data=None):
         try:
