@@ -107,6 +107,11 @@ class Update(threading.Thread):
                     p = int(ratio[0].replace(' ',''))
                     m = int(ratio[1].replace(' ',''))
                     u = i[i.find('"')+1:i.find('>')-1]
+                    # The number in the server address is just a reversed IP, 
+                    # converted to decimal.
+                    ip = int(u[6:])
+                    ip = str(ip&0xFF)+'.'+str((ip&0xFF00)>>8)+'.'+str((ip&0xFF0000)>>16)+'.'+str((ip&0xFF000000)>>24)
+                    
                     n = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
                     if i.find('<') >= 8 :
                         ping = int(i[6:i.find('<')])
@@ -115,20 +120,21 @@ class Update(threading.Thread):
                     if not n in blacklist:
                         if "Full" in self.checks and "Empty" in self.checks:
                             if p != m and p != 0:
-                                self.list.append([u,ping,p,m,n,True])
+                                self.list.append([u,ping,p,m,n,True,ip])
                                 continue
                         elif "Empty" in self.checks:
                             if p != 0:
-                                self.list.append([u,ping,p,m,n,True])
+                                self.list.append([u,ping,p,m,n,True,ip])
                                 continue
                         elif "Full" in self.checks:
                             if p != m:
-                                self.list.append([u,ping,p,m,n,True])
+                                self.list.append([u,ping,p,m,n,True,ip])
                                 continue                    
                         else:
-                            self.list.append([u,ping,p,m,n,True])
-                except:
-                    print 'Skipped invalid server'
+                            self.list.append([u,ping,p,m,n,True,ip])
+                except Exception, e:
+                    
+                    print 'Skipped invalid server (%s)' % (str(e))
             self.statusbar.push(0,"Updated successfully")
             return True
         except Exception, e:
@@ -295,8 +301,9 @@ class Base:
         self.tvcurr.set_sort_column_id(2)
         rt = gtk.CellRendererText()
         self.tvname = gtk.TreeViewColumn("Name",rt, text=4)
-        #self.tvname.set_sort_column_id(4)
-        for i in [self.tvfav,self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname]:
+        rt = gtk.CellRendererText()
+        self.tvip = gtk.TreeViewColumn("IP",rt, text=6)     
+        for i in [self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname,self.tvip]:
             treeview.append_column(i)
                 
     
@@ -316,7 +323,7 @@ class Base:
         self.sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         
-        self.liststore = gtk.ListStore(str,int, int, int,str, 'gboolean')
+        self.liststore = gtk.ListStore(str,int, int, int,str, 'gboolean', str)
         self.treeview = gtk.TreeView(self.liststore)
 
         self.treeview.connect("button_press_event",self.serverListEvent)
