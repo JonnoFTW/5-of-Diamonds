@@ -94,12 +94,13 @@ class Update(threading.Thread):
          
      def run(self):
         self.list.clear()
-        gtk.gdk.threads_enter()
+        #gtk.gdk.threads_enter()
         global blacklist
         try:
             servers = []
             page = urllib.urlopen('http://ace-spades.com/').readlines()
             s = page[page.index("<pre>\n")+1:-2]
+            gtk.gdk.threads_enter()
             # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
             for i in s:
                 try:
@@ -141,7 +142,7 @@ class Update(threading.Thread):
             self.statusbar.push(0,"Updating failed (%s)" % (str(e)))
 
         finally:
-             gtk.gdk.threads_leave()
+            gtk.gdk.threads_leave()
 
 class Base:
     def delete_event(self, widget,event, data=None):
