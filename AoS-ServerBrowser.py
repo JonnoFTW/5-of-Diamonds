@@ -86,6 +86,10 @@ def loadFavlist():
 loadBlacklist()
 loadFavlist()
 
+def ip2aos(ip):
+	ip = ip.split('.')
+	return (16777216*int(ip[0]) + 65536*int(ip[1]) + 256*int(ip[2]) + int(ip[3]))
+
 class Update(threading.Thread):
      def __init__(self, list, statusbar,checks):
          super(Update, self).__init__()
@@ -100,13 +104,13 @@ class Update(threading.Thread):
             servers = []
 
             page = urllib.urlopen('http://ace-spades.com/').readlines()
-            gtk.gdk.threads_enter()
             s = page[page.index("<pre>\n")+1:-2]
             # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
             for i in s:
                 try:
                     ratio = i[0:5].split('/')
-                    p = int(ratio[0].replace(' ',''))
+                    #p = int(ratio[0].replace(' ',''))
+                    p = int(os.popen('ping 213.114.118.75 -n 1').read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
                     m = int(ratio[1].replace(' ',''))
                     u = i[i.find('"')+1:i.find('>')-1]
                     # The number in the server address is just a reversed IP, 
@@ -120,6 +124,7 @@ class Update(threading.Thread):
                     else:
                         ping = 0
                     server = [u,ping,p,m,n,True,ip]
+                    gtk.gdk.threads_enter()
                     if not ip in blacklist:
                         if "Full" in self.checks and "Empty" in self.checks:
                             if p != m and p != 0:
@@ -135,15 +140,20 @@ class Update(threading.Thread):
                                 continue                    
                         else:
                             self.list.append(server)
+                    gtk.gdk.threads_leave()
                 except Exception, e:
                     print 'Skipped invalid server (%s)' % (str(e))
+            gtk.gdk.threads_enter()
             self.statusbar.push(0,"Updated successfully")
+            gtk.gdk.threads_leave()
             return True
         except Exception, e:
+            gtk.gdk.threads_enter()
             self.statusbar.push(0,"Updating failed (%s)" % (str(e)))
+            gtk.gdk.threads_leave()
 
         finally:
-             gtk.gdk.threads_leave()
+             pass
 
 class Base:
     def delete_event(self, widget,event, data=None):
