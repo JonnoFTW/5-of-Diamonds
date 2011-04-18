@@ -39,6 +39,7 @@ print "AoS client path: "+aos_path
 print "AoS config path: "+config_path
 print "5oD blacklist path: "+blacklist_path
 print "5oD blacklist path: "+favlist_path
+
 def isascii(x):
     try:
         x.decode('ascii')
@@ -94,13 +95,13 @@ class Update(threading.Thread):
          
      def run(self):
         self.list.clear()
-        #gtk.gdk.threads_enter()
         global blacklist
         try:
             servers = []
+
             page = urllib.urlopen('http://ace-spades.com/').readlines()
-            s = page[page.index("<pre>\n")+1:-2]
             gtk.gdk.threads_enter()
+            s = page[page.index("<pre>\n")+1:-2]
             # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
             for i in s:
                 try:
@@ -118,23 +119,23 @@ class Update(threading.Thread):
                         ping = int(i[6:i.find('<')])
                     else:
                         ping = 0
-                    if not n in blacklist:
+                    server = [u,ping,p,m,n,True,ip]
+                    if not ip in blacklist:
                         if "Full" in self.checks and "Empty" in self.checks:
                             if p != m and p != 0:
-                                self.list.append([u,ping,p,m,n,True,ip])
+                                self.list.append(server)
                                 continue
                         elif "Empty" in self.checks:
                             if p != 0:
-                                self.list.append([u,ping,p,m,n,True,ip])
+                                self.list.append(server)
                                 continue
                         elif "Full" in self.checks:
                             if p != m:
-                                self.list.append([u,ping,p,m,n,True,ip])
+                                self.list.append(server)
                                 continue                    
                         else:
-                            self.list.append([u,ping,p,m,n,True,ip])
+                            self.list.append(server)
                 except Exception, e:
-                    
                     print 'Skipped invalid server (%s)' % (str(e))
             self.statusbar.push(0,"Updated successfully")
             return True
@@ -142,7 +143,7 @@ class Update(threading.Thread):
             self.statusbar.push(0,"Updating failed (%s)" % (str(e)))
 
         finally:
-            gtk.gdk.threads_leave()
+             gtk.gdk.threads_leave()
 
 class Base:
     def delete_event(self, widget,event, data=None):
@@ -242,7 +243,7 @@ class Base:
         
     def blacklistServer(self,menuitem,*ignore):
         values = self.get_selected_id()
-        name = values[1]
+        name = values[6]
         try:
             blacklist.append(name)
             f = open(blacklist_path,'a')
@@ -281,6 +282,9 @@ class Base:
             #remove it from the favourite list
             pass
         model.set(iter,column,toggle_item)
+
+    def menuEvent(self,widget,event):
+        self.widget.popup(None, None, None, event.button, event.time)
     
     def draw_columns(self,treeview):
         self.ren = gtk.CellRendererToggle()
@@ -304,7 +308,7 @@ class Base:
         self.tvname = gtk.TreeViewColumn("Name",rt, text=4)
         rt = gtk.CellRendererText()
         self.tvip = gtk.TreeViewColumn("IP",rt, text=6)     
-        for i in [self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname,self.tvip]:
+        for i in [self.tvfav,self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname,self.tvip]:
             treeview.append_column(i)
                 
     
@@ -312,6 +316,7 @@ class Base:
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_size_request(600,650)
         self.window.set_title("5 of Diamonds")
+        self.statusbar = gtk.Statusbar()
         try:
             self.window.set_icon_from_file("diamonds.png")
         except Exception, e:
@@ -319,7 +324,7 @@ class Base:
         self.window.connect("delete_event",self.delete_event)
         self.window.connect("destroy",self.destroy)
         self.window.set_border_width(10)
-        self.statusbar = gtk.Statusbar()
+
         self.sw = gtk.ScrolledWindow()
         self.sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -423,9 +428,20 @@ class Base:
         self.hbox = gtk.HBox()
         self.hbox.set_spacing(3)
 
+        self.menuBar = gtk.MenuBar()
+        self.menus = gtk.Menu()
+        self.fileMenu = gtk.MenuItem("File")
+        self.menus.append(self.fileMenu)
+        
+        
+        #for i in [self.fileMenu]:#,"Help","Connect","Updates"]:
+        #    self.menuBar.add(i)
+
+        self.hbox.pack_start(self.menuBar,expand=False)
         buttons =[self.exitB,self.refreshB,self.saveB,self.webB,self.appB,self.pathB,self.serverB]
         for i in buttons:
-            self.hbox.pack_start(i,False,False,0) 
+            self.hbox.pack_start(i,False,False,0)
+            
         self.vbox.pack_start(self.hbox,False,False,0)
         self.vbox.pack_start(self.sw,True,True,0)
         self.vbox.pack_start(self.frame,False,False,0)
@@ -435,7 +451,8 @@ class Base:
         # Contain everything in a single Vbox
         self.window.add(self.vbox)
         self.window.show_all()
-        self.refresh()
+        #Don't refresh on startup for testing purposes
+        #self.refresh()
 
     def main(self):
         try:
