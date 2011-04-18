@@ -47,6 +47,13 @@ def isascii(x):
         return False
     else:
         return True
+       
+# aos2ip(aos): Converts an AoS address (aos://12345678) to a dotted IP address
+def aos2ip(aos): 
+  # Chop off the aos:// and convert the reversed decimal IP to a standard 4-dot IP
+  ip = int(aos[6:])
+  ip = str(ip&0xFF)+'.'+str((ip&0xFF00)>>8)+'.'+str((ip&0xFF0000)>>16)+'.'+str((ip&0xFF000000)>>24)
+  return ip
 
 
 def loadBlacklist():
@@ -109,11 +116,7 @@ class Update(threading.Thread):
                     p = int(os.popen('ping 213.114.118.75 -n 1').read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
                     m = int(ratio[1].replace(' ',''))
                     u = i[i.find('"')+1:i.find('>')-1]
-                    # The number in the server address is just a reversed IP, 
-                    # converted to decimal.
-                    ip = int(u[6:])
-                    ip = str(ip&0xFF)+'.'+str((ip&0xFF00)>>8)+'.'+str((ip&0xFF0000)>>16)+'.'+str((ip&0xFF000000)>>24)
-                    
+                    ip = aos2ip(u)
                     n = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
                     if i.find('<') >= 8 :
                         ping = int(i[6:i.find('<')])
