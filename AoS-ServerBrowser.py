@@ -8,8 +8,7 @@ import threading
 import webbrowser
 import os
 
-#It's safe to assume we're using a Linux system if importing _winreg 
-fails
+#It's safe to assume we're using a Linux system if importing _winreg fails
 try:
     import _winreg
     onLinux = False
@@ -23,14 +22,11 @@ global config_path
 blacklist = []
 favlist = []
 if onLinux:
-    #find some way to access Wine's registry. For now, just take a 
-guess.
-    aos_path = os.path.expanduser('~')+'/.wine/drive_c/Program Files/Ace 
-of Spades/client.exe'
+    #find some way to access Wine's registry. For now, just take a guess.
+    aos_path = os.path.expanduser('~')+'/.wine/drive_c/Program Files/Ace of Spades/client.exe'
 else:
     try:
-        aos_key = 
-_winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Classes\aos\shell\open\command')
+        aos_key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Classes\aos\shell\open\command')
         aos_path = _winreg.EnumValue(aos_key,0)[1].split('\" \"')[0][1:]
     except:
         aos_path = 'C:\Program Files\Ace of Spades\client.exe'
@@ -77,8 +73,7 @@ def loadFavlist():
             print 'Loaded Favourites...'
     except:
             try:
-                print 'Creating Favourites list file: %s' % 
-(favlist_path)
+                print 'Creating Favourites list file: %s' % (favlist_path)
                 _file = open(favlist_path,'w')
                 _file.close()
                 loadFavlist()
@@ -105,30 +100,25 @@ class Update(threading.Thread):
             servers = []
             page = urllib.urlopen('http://ace-spades.com/').readlines()
             s = page[page.index("<pre>\n")+1:-2]
-            # Servers dict: 
-[{'max':int,'playing':int,'name':str,'url':str}]
+            # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
             for i in s:
                 try:
                     ratio = i[0:5].split('/')
                     p = int(ratio[0].replace(' ',''))
                     m = int(ratio[1].replace(' ',''))
                     u = i[i.find('"')+1:i.find('>')-1]
-                    # The number in the server address is just a 
-reversed IP, 
+                    # The number in the server address is just a reversed IP, 
                     # converted to decimal.
                     ip = int(u[6:])
-                    ip = 
-str(ip&0xFF)+'.'+str((ip&0xFF00)>>8)+'.'+str((ip&0xFF0000)>>16)+'.'+str((ip&0xFF000000)>>24)
+                    ip = str(ip&0xFF)+'.'+str((ip&0xFF00)>>8)+'.'+str((ip&0xFF0000)>>16)+'.'+str((ip&0xFF000000)>>24)
                     
-                    n = filter(lambda x: 
-isascii(x),i[i.find('>')+1:i.rfind('<')])
+                    n = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
                     if i.find('<') >= 8 :
                         ping = int(i[6:i.find('<')])
                     else:
                         ping = 0
                     if not n in blacklist:
-                        if "Full" in self.checks and "Empty" in 
-self.checks:
+                        if "Full" in self.checks and "Empty" in self.checks:
                             if p != m and p != 0:
                                 self.list.append([u,ping,p,m,n,True,ip])
                                 continue
@@ -181,11 +171,9 @@ class Base:
             name = self.nameE.get_text()
             vol = self.volE.get_text()
             f = open(config_path,'w')
-            f.write('\n'.join(['xres '+x,'yres '+y,'vol '+vol,'name 
-'+name]))
+            f.write('\n'.join(['xres '+x,'yres '+y,'vol '+vol,'name '+name]))
             f.close()
-            self.statusbar.push(0,"Config updated successfully in: 
-"+config_path )
+            self.statusbar.push(0,"Config updated successfully in: "+config_path )
         except Exception, e:
             self.statusbar.push(0,str(e)+ '| Tried: '+aos_path)
             
@@ -193,8 +181,7 @@ class Base:
         if data == 'aos':
             webbrowser.open_new_tab('http://ace-spades.com/')
         elif data == '5od':
-            
-webbrowser.open_new_tab('http://www.reddit.com/r/AceOfSpades/comments/gouh3/update_aos_server_browser/')
+            webbrowser.open_new_tab('http://www.reddit.com/r/AceOfSpades/comments/gouh3/update_aos_server_browser/')
         return True
     
     def joinGame(self,url):      
@@ -212,29 +199,23 @@ webbrowser.open_new_tab('http://www.reddit.com/r/AceOfSpades/comments/gouh3/upda
 
     def launchServer(self,widget, data=None):
         try:
-            self.statusbar.push(0,"Launching server from: 
-"+aos_path[:-10]+'server.exe')
+            self.statusbar.push(0,"Launching server from: "+aos_path[:-10]+'server.exe')
             subprocess.Popen([aos_path[:-10]+'server.exe'])
         except OSError,e:
-            self.statusbar.push(0,str(e)+ '| Looked in 
-'+aos_path[:-10]+'server.exe')
+            self.statusbar.push(0,str(e)+ '| Looked in '+aos_path[:-10]+'server.exe')
         return True
     
     def refresh(self,widget=None,data=None):
         #self.liststore.append(['Loading',0,0,0,'Refreshing',True])
-        t = Update(self.liststore,self.statusbar,[r for r in self.checks 
-if r.get_active()])
+        t = Update(self.liststore,self.statusbar,[r for r in self.checks if r.get_active()])
         t.start()
         return True
     
     def pop_path(self,widget=None,data=None):
         #popup a window asking for the directory
-        self.pop = gtk.FileChooserDialog(title="Where did you install 
-AoS?",
-                                         
-action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                                         buttons = 
-(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+        self.pop = gtk.FileChooserDialog(title="Where did you install AoS?",
+                                         action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                                         buttons = (gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
         response = self.pop.run()
         if response == gtk.RESPONSE_OK or response == gtk.STOCK_OPEN:
             self.set_path(self.pop.get_filename())
@@ -268,8 +249,7 @@ action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
             f.close()
             self.statusbar.push(0,name+' added to blacklist')
         except Exception,e:
-            self.statusbar.push(0,'Failed to add to blacklist: '+name+' 
-| '+str(e))
+            self.statusbar.push(0,'Failed to add to blacklist: '+name+' | '+str(e))
 
     def serverListEvent(self,treeview,event):
         x = int(event.x)
@@ -283,8 +263,7 @@ action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
             treeview.set_cursor( path, col, 0)
             # Popup blacklist menu on right click
             if event.button == 3:
-                self.blackmenu.popup( None, None, None, event.button, 
-time)
+                self.blackmenu.popup( None, None, None, event.button, time)
             # Join game on double click
             elif event.type == gtk.gdk._2BUTTON_PRESS:
                 self.joinGame(model[path][0])
@@ -324,8 +303,7 @@ time)
         self.tvname = gtk.TreeViewColumn("Name",rt, text=4)
         rt = gtk.CellRendererText()
         self.tvip = gtk.TreeViewColumn("IP",rt, text=6)     
-        for i in 
-[self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname,self.tvip]:
+        for i in [self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname,self.tvip]:
             treeview.append_column(i)
                 
     
@@ -345,8 +323,7 @@ time)
         self.sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         
-        self.liststore = gtk.ListStore(str,int, int, int,str, 
-'gboolean', str)
+        self.liststore = gtk.ListStore(str,int, int, int,str, 'gboolean', str)
         self.treeview = gtk.TreeView(self.liststore)
 
         self.treeview.connect("button_press_event",self.serverListEvent)
@@ -362,8 +339,7 @@ time)
         self.sw.add(self.treeview)
         self.table = gtk.Table(2,2)
         self.exitB = gtk.Button(stock=gtk.STOCK_CLOSE)
-        self.exitB.connect_object("clicked",gtk.Widget.destroy, 
-self.window)
+        self.exitB.connect_object("clicked",gtk.Widget.destroy, self.window)
         
         self.refreshB = gtk.Button("Refresh")
         self.refreshB.connect("clicked",self.refresh,None)
@@ -415,8 +391,7 @@ self.window)
         self.aboutFrame = gtk.Frame("About")
         self.abvbox = gtk.VBox(True,3)
         
-        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.7\n2011\nGot 
-bugs? Get the latest version")
+        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.7\n2011\nGot bugs? Get the latest version")
         self.abtlbl.set_justify(gtk.JUSTIFY_CENTER)
         self.abvbox.pack_start(self.abtlbl)
 
@@ -431,8 +406,7 @@ bugs? Get the latest version")
         self.checks = [self.checkFull,self.checkEmpty]
         for i in self.checks:
             self.filterBox.pack_start(i,False,False,0)
-        self.helplbl = gtk.Label("Refresh after selecting filters; 
-rightclick to blacklist a server")
+        self.helplbl = gtk.Label("Refresh after selecting filters; rightclick to blacklist a server")
         self.helplbl.set_justify(gtk.JUSTIFY_RIGHT)
         self.filterBox.pack_start(self.helplbl,True,True,0)
         self.filterFrame.add(self.filterBox)
@@ -448,8 +422,7 @@ rightclick to blacklist a server")
         self.hbox = gtk.HBox()
         self.hbox.set_spacing(3)
 
-        buttons 
-=[self.exitB,self.refreshB,self.saveB,self.webB,self.appB,self.pathB,self.serverB]
+        buttons =[self.exitB,self.refreshB,self.saveB,self.webB,self.appB,self.pathB,self.serverB]
         for i in buttons:
             self.hbox.pack_start(i,False,False,0) 
         self.vbox.pack_start(self.hbox,False,False,0)
