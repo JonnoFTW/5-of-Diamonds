@@ -122,7 +122,11 @@ class Update(threading.Thread):
                     #    ping = int(i[6:i.find('<')])
                     #else:
                     #    ping = 0
-                    ping = int(os.popen('ping %s -n 1' % (ip)).read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
+                    try:
+                        ping = int(_ping = os.popen('ping %s -w 250 -n 1' % (ip)).read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
+                        _ping.close()
+                    except:
+                        ping = int(i[6:i.find('<')])
                     server = [u,ping,p,m,n,True,ip]
                     gtk.gdk.threads_enter()
                     if not ip in blacklist:
@@ -143,9 +147,10 @@ class Update(threading.Thread):
                     gtk.gdk.threads_leave()
                 except Exception, e:
                     print 'Skipped invalid server (%s)' % (str(e))
-            gtk.gdk.threads_enter()
-            self.statusbar.push(0,"Updated successfully")
-            gtk.gdk.threads_leave()
+            if running:
+                gtk.gdk.threads_enter()
+                self.statusbar.push(0,"Updated successfully")
+                gtk.gdk.threads_leave()
             return True
         except Exception, e:
             gtk.gdk.threads_enter()
@@ -417,8 +422,8 @@ class Base:
 
         self.aboutFrame.add(self.abvbox)
 
-       # self.radios = []
-       #Pass this info into the update so it filters correctly
+        # self.radios = []
+        #Pass this info into the update so it filters correctly
         self.filterFrame = gtk.Frame("Filters")
         self.filterBox = gtk.HBox()
         self.checkFull = gtk.CheckButton("Full",True)
