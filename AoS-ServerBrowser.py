@@ -60,7 +60,8 @@ def loadBlacklist():
     try:
             lines = open(blacklist_path,'r').readlines()
             for i in lines:
-                blacklist.append(i)
+                #remove the \n
+                blacklist.append(i[:-1])
             print 'blacklist Loaded...'
     except:
             try:
@@ -77,7 +78,7 @@ def loadFavlist():
     try:
             lines = open(favlist_path,'r').readlines()
             for i in lines:
-                favlist.append(i)
+                favlist.append(i[:-1])
             print 'Loaded Favourites...'
     except:
             try:
@@ -112,19 +113,20 @@ class Update(threading.Thread):
             for i in s:
                 try:
                     ratio = i[0:5].split('/')
-                    #p = int(ratio[0].replace(' ',''))
-                    p = int(os.popen('ping 213.114.118.75 -n 1').read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
-                    m = int(ratio[1].replace(' ',''))
-                    u = i[i.find('"')+1:i.find('>')-1]
-                    ip = aos2ip(u)
-                    n = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
-                    if i.find('<') >= 8 :
-                        ping = int(i[6:i.find('<')])
-                    else:
-                        ping = 0
-                    server = [u,ping,p,m,n,True,ip]
+                    playing = int(ratio[0].replace(' ',''))
+                    max_players = int(ratio[1].replace(' ',''))
+                    url = i[i.find('"')+1:i.find('>')-1]
+                    ip = aos2ip(url)
+                    try:
+                        pipe = os.popen('ping %s -n 1 -w 500' % (ip))
+                        ping = int(pipe.read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
+                        pipe.stdin.close()
+                    except:
+                        server_ping = int(i[6:i.find('<')])
+                    name = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
+                    server = [url,ping,playing,max_players,name,True,ip]
                     gtk.gdk.threads_enter()
-                    if not ip in blacklist:
+                    if not url in blacklist:
                         if "Full" in self.checks and "Empty" in self.checks:
                             if p != m and p != 0:
                                 self.list.append(server)
@@ -250,19 +252,22 @@ class Base:
         store, paths = self.treeview.get_selection().get_selected_rows()
         for path in paths:
             treeiter = store.get_iter(path)
-            val = store.get_value(treeiter,4)
+            val = store.get_value(treeiter,0)
             ids.append(val)
         return ids
         
     def blacklistServer(self,menuitem,*ignore):
         values = self.get_selected_id()
-        name = values[6]
+        name = values[0]
         try:
-            blacklist.append(name)
-            f = open(blacklist_path,'a')
-            f.write(name+'\n')
-            f.close()
-            self.statusbar.push(0,name+' added to blacklist')
+            if not name in blacklist:
+                blacklist.append(name)
+                f = open(blacklist_path,'a')
+                f.write(name+'\n')
+                f.close()
+                self.statusbar.push(0,name+' added to blacklist')
+            else:
+                self.statusbar.push(0,name+' already in blacklist')
         except Exception,e:
             self.statusbar.push(0,'Failed to add to blacklist: '+name+' | '+str(e))
 
@@ -320,7 +325,8 @@ class Base:
         rt = gtk.CellRendererText()
         self.tvname = gtk.TreeViewColumn("Name",rt, text=4)
         rt = gtk.CellRendererText()
-        self.tvip = gtk.TreeViewColumn("IP",rt, text=6)     
+        self.tvip = gtk.TreeViewColumn("IP",rt, text=6)
+        self.tvip.set_sort_column_id(6)
         for i in [self.tvfav,self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname,self.tvip]:
             treeview.append_column(i)
                 
@@ -441,16 +447,6 @@ class Base:
         self.hbox = gtk.HBox()
         self.hbox.set_spacing(3)
 
-        self.menuBar = gtk.MenuBar()
-        self.menus = gtk.Menu()
-        self.fileMenu = gtk.MenuItem("File")
-        self.menus.append(self.fileMenu)
-        
-        
-        #for i in [self.fileMenu]:#,"Help","Connect","Updates"]:
-        #    self.menuBar.add(i)
-
-        self.hbox.pack_start(self.menuBar,expand=False)
         buttons =[self.exitB,self.refreshB,self.saveB,self.webB,self.appB,self.pathB,self.serverB]
         for i in buttons:
             self.hbox.pack_start(i,False,False,0)
