@@ -158,6 +158,7 @@ class Base:
     
     def destroy(self, widget, data=None):
         gtk.main_quit()
+        return False
         
     def loadConfig(self):
         try:
@@ -430,7 +431,7 @@ class Base:
         self.aboutFrame = gtk.Frame("About")
         self.abvbox = gtk.VBox(True,3)
         
-        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.7\n2011\nGot bugs? Get the latest version")
+        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.8\n2011\nGot bugs? Get the latest version")
         self.abtlbl.set_justify(gtk.JUSTIFY_CENTER)
         self.abvbox.pack_start(self.abtlbl)
 
@@ -478,10 +479,9 @@ class Base:
         self.refresh()
 
     def main(self):
-        try:
             gtk.main()
-        except:
-            self.statusbar.push(0,"Error: "+str(e))    
+            
 if __name__ == "__main__":
     base = Base()
     base.main()
+    
