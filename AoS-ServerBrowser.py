@@ -112,16 +112,17 @@ class Update(threading.Thread):
             for i in s:
                 try:
                     ratio = i[0:5].split('/')
-                    #p = int(ratio[0].replace(' ',''))
-                    p = int(os.popen('ping 213.114.118.75 -n 1').read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
+                    p = int(ratio[0].replace(' ',''))
+                    #p = int(os.popen('ping 213.114.118.75 -n 1').read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
                     m = int(ratio[1].replace(' ',''))
                     u = i[i.find('"')+1:i.find('>')-1]
                     ip = aos2ip(u)
                     n = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
-                    if i.find('<') >= 8 :
-                        ping = int(i[6:i.find('<')])
-                    else:
-                        ping = 0
+                    #if i.find('<') >= 8 :
+                    #    ping = int(i[6:i.find('<')])
+                    #else:
+                    #    ping = 0
+                    ping = int(os.popen('ping %s -n 1' % (ip)).read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
                     server = [u,ping,p,m,n,True,ip]
                     gtk.gdk.threads_enter()
                     if not ip in blacklist:
