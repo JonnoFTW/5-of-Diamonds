@@ -122,7 +122,7 @@ class Update(threading.Thread):
                         ping = int(pipe.read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
                         pipe.stdin.close()
                     except:
-                        server_ping = int(i[6:i.find('<')])
+                        ping = int(i[6:i.find('<')])
                     name = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
                     server = [url,ping,playing,max_players,name,True,ip]
                     gtk.gdk.threads_enter()
@@ -262,8 +262,9 @@ class Base:
         try:
             if not name in blacklist:
                 blacklist.append(name)
-                f = open(blacklist_path,'a')
-                f.write(name+'\n')
+                f = open(blacklist_path,'w')
+                for i in blacklist:
+                    f.write(i+'\n')
                 f.close()
                 self.statusbar.push(0,name+' added to blacklist')
             else:
@@ -289,26 +290,27 @@ class Base:
                 self.joinGame(model[path][0])
         return True
     
-    def on_toggle(self,cell,path_str,model):
-        toggle_item = model.get_value(iter,column)
-        toggle_item = not toggle_item
-
-        if toggle_item:
-            #Add it to the favourite list if it isn't already
-            pass
-        else:
-            #remove it from the favourite list
-            pass
-        model.set(iter,column,toggle_item)
+    def on_toggle(self,cell,path,model,*ignore):
+        if path is not None:        
+            it = self.model.get_iter(path)
+            model[it][0] = not model[it][0]
+            print model[it][0]
+            if toggle_item:
+                #Add it to the favourite list if it isn't already
+                pass
+            else:
+                #remove it from the favourite list
+                pass
 
     def menuEvent(self,widget,event):
         self.widget.popup(None, None, None, event.button, event.time)
     
     def draw_columns(self,treeview):
         self.ren = gtk.CellRendererToggle()
+        self.ren.connect("toggled",self.on_toggle,self.liststore)
         self.tvfav = gtk.TreeViewColumn('Fav',self.ren)
-        self.tvfav.set_clickable(True)
-        self.ren.connect("toggled",self.on_toggle,treeview.get_model())
+        #self.tvfav.set_clickable(True)
+
         self.tvfav.set_sort_column_id(4)
         rt = gtk.CellRendererText()
         self.tvurl = gtk.TreeViewColumn("URL",rt, text=0)
