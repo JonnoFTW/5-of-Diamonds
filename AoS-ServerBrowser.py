@@ -37,8 +37,8 @@ favlist_path = aos_path.replace('client.exe','favourites.txt')
 
 print "AoS client path: "+aos_path
 print "AoS config path: "+config_path
-print "5oD blacklist path: "+blacklist_path
-print "5oD blacklist path: "+favlist_path
+print "5oD Blacklist path: "+blacklist_path
+print "5oD Favourites path: "+favlist_path
 
 def isascii(x):
     try:
@@ -62,7 +62,7 @@ def loadBlacklist():
             for i in lines:
                 #remove the \n
                 blacklist.append(i[:-1])
-            print 'blacklist Loaded...'
+            print 'Loaded blacklist ...'
     except:
             try:
                 print 'Creating blacklist file: %s' % (blacklist_path)
@@ -79,7 +79,7 @@ def loadFavlist():
             lines = open(favlist_path,'r').readlines()
             for i in lines:
                 favlist.append(i[:-1])
-            print 'Loaded Favourites...'
+            print 'Loaded favourites...'
     except:
             try:
                 print 'Creating Favourites list file: %s' % (favlist_path)
@@ -100,22 +100,21 @@ class Update(threading.Thread):
          self.list = list
          self.statusbar = statusbar
          self.checks = [c.get_label() for c in checks]
-         
+         print self.checks
      def run(self):
         self.list.clear()
         global blacklist
         try:
             servers = []
-
             page = urllib.urlopen('http://ace-spades.com/').readlines()
-            s = page[page.index("<pre>\n")+1:-2]
-            # Servers dict: [{'max':int,'playing':int,'name':str,'url':str}]
+            s = page[page.index("<pre>\n")+2:-2]
             for i in s:
                 try:
                     ratio = i[0:5].split('/')
                     playing = int(ratio[0].replace(' ',''))
                     max_players = int(ratio[1].replace(' ',''))
                     url = i[i.find('"')+1:i.find('>')-1]
+                    fav = url in favlist
                     ip = aos2ip(url)
                     try:
                         pipe = os.popen('ping %s -n 1 -w 500' % (ip))
@@ -124,21 +123,18 @@ class Update(threading.Thread):
                     except:
                         ping = int(i[6:i.find('<')])
                     name = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
-                    server = [url,ping,playing,max_players,name,True,ip]
+                    server = [fav,url,ping,playing,max_players,name,ip]
                     gtk.gdk.threads_enter()
                     if not url in blacklist:
                         if "Full" in self.checks and "Empty" in self.checks:
-                            if p != m and p != 0:
+                            if playing != max_players and playing != 0:
                                 self.list.append(server)
-                                continue
                         elif "Empty" in self.checks:
-                            if p != 0:
+                            if playing != 0:
                                 self.list.append(server)
-                                continue
                         elif "Full" in self.checks:
-                            if p != m:
+                            if playing != max_players:
                                 self.list.append(server)
-                                continue                    
                         else:
                             self.list.append(server)
                     gtk.gdk.threads_leave()
@@ -205,7 +201,7 @@ class Base:
                 subprocess.Popen(['wine', aos_path, '-'+url])
             else:
                 subprocess.Popen([aos_path, '-'+url])
-            self.statusbar.push(0,"Launching game from: "+aos_path)
+            self.statusbar.push(0,"Launching game from: "+aos_path+' -'+url)
         except OSError,e:
             self.statusbar.push(0,str(e)+ '| Looked in '+aos_path)
         return True
@@ -252,7 +248,7 @@ class Base:
         store, paths = self.treeview.get_selection().get_selected_rows()
         for path in paths:
             treeiter = store.get_iter(path)
-            val = store.get_value(treeiter,0)
+            val = store.get_value(treeiter,1)
             ids.append(val)
         return ids
         
@@ -276,56 +272,71 @@ class Base:
         x = int(event.x)
         y = int(event.y)
         time = event.time
-        model = treeview.get_model()
+        model = treeview.get_model()        
         pthinfo = treeview.get_path_at_pos(x, y)
         if pthinfo is not None:
             path, col, cellx, celly = pthinfo
+
             treeview.grab_focus()
             treeview.set_cursor( path, col, 0)
             # Popup blacklist menu on right click
             if event.button == 3:
                 self.blackmenu.popup( None, None, None, event.button, time)
             # Join game on double click
+            elif event.type == gtk.gdk.BUTTON_PRESS and col.get_title() == 'Fav':
+                it = model.get_iter(path)
+                model[it][0] = not model[it][0]
+                url = model[it][1]
+                if model[it][0]:
+                    #Put server in favourites if it isn't already
+                    if url not in favlist:
+                        favlist.append(url)
+                        self.statusbar.push(0,url+' added to favourites')
+                else:
+                    #Remove server from favourites
+                    favlist.remove(url)
+                    self.statusbar.push(0,url+' removed from favourites')
+                try:
+                    f = open(favlist_path,'w')
+                    for i in favlist:
+                        f.write(i+'\n')
+                    f.close()
+                except Exception,e:
+                    self.statusbar.push(0,'Failed to write favourites file: %s' % (str(e)))
             elif event.type == gtk.gdk._2BUTTON_PRESS:
-                self.joinGame(model[path][0])
+                self.joinGame(model[path][1])
         return True
-    
-    def on_toggle(self,cell,path,model,*ignore):
-        if path is not None:        
-            it = self.model.get_iter(path)
-            model[it][0] = not model[it][0]
-            print model[it][0]
-            if toggle_item:
-                #Add it to the favourite list if it isn't already
-                pass
-            else:
-                #remove it from the favourite list
-                pass
 
     def menuEvent(self,widget,event):
         self.widget.popup(None, None, None, event.button, event.time)
     
     def draw_columns(self,treeview):
         self.ren = gtk.CellRendererToggle()
-        self.ren.connect("toggled",self.on_toggle,self.liststore)
-        self.tvfav = gtk.TreeViewColumn('Fav',self.ren)
+        #self.ren.connect("toggled",self.serverListEvent,self.liststore)
+        self.tvfav = gtk.TreeViewColumn('Fav',self.ren,active=0)
         #self.tvfav.set_clickable(True)
+        self.tvfav.set_sort_column_id(0)
 
-        self.tvfav.set_sort_column_id(4)
         rt = gtk.CellRendererText()
-        self.tvurl = gtk.TreeViewColumn("URL",rt, text=0)
-        self.tvurl.set_sort_column_id(0)
+        self.tvurl = gtk.TreeViewColumn("URL",rt, text=1)
+        self.tvurl.set_sort_column_id(1)
+
         rt = gtk.CellRendererText()
-        self.ping = gtk.TreeViewColumn("Ping",rt, text=1)
-        self.ping.set_sort_column_id(1)
+        self.ping = gtk.TreeViewColumn("Ping",rt, text=2)
+        self.ping.set_sort_column_id(2)
+
         rt = gtk.CellRendererText()
-        self.tvmax = gtk.TreeViewColumn("Max",rt, text=3)
-        self.tvmax.set_sort_column_id(3)
+        self.tvcurr = gtk.TreeViewColumn("Playing",rt, text=3)
+        self.tvcurr.set_sort_column_id(3)
+
         rt = gtk.CellRendererText()
-        self.tvcurr = gtk.TreeViewColumn("Playing",rt, text=2)
-        self.tvcurr.set_sort_column_id(2)
+        self.tvmax = gtk.TreeViewColumn("Max",rt, text=4)
+        self.tvmax.set_sort_column_id(4)
+
         rt = gtk.CellRendererText()
-        self.tvname = gtk.TreeViewColumn("Name",rt, text=4)
+        self.tvname = gtk.TreeViewColumn("Name",rt, text=5)
+        self.tvname.set_sort_column_id(5)
+
         rt = gtk.CellRendererText()
         self.tvip = gtk.TreeViewColumn("IP",rt, text=6)
         self.tvip.set_sort_column_id(6)
@@ -349,8 +360,9 @@ class Base:
         self.sw = gtk.ScrolledWindow()
         self.sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        
-        self.liststore = gtk.ListStore(str,int, int, int,str, 'gboolean', str)
+
+        #[fav,url,ping,playing,max_players,name,ip]
+        self.liststore = gtk.ListStore(bool,str,int, int, int,str, str)
         self.treeview = gtk.TreeView(self.liststore)
 
         self.treeview.connect("button_press_event",self.serverListEvent)
@@ -463,7 +475,7 @@ class Base:
         self.window.add(self.vbox)
         self.window.show_all()
         #Don't refresh on startup for testing purposes
-        #self.refresh()
+        self.refresh()
 
     def main(self):
         try:
