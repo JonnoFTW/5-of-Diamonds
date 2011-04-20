@@ -56,43 +56,38 @@ def aos2ip(aos):
   return ip
 
 
-def loadBlacklist():
-    try:
-            lines = open(blacklist_path,'r').readlines()
-            for i in lines:
-                #remove the \n
-                blacklist.append(i[:-1])
-            print 'Loaded blacklist ...'
-    except:
-            try:
-                print 'Creating blacklist file: %s' % (blacklist_path)
-                _file = open(blacklist_path,'w')
-                _file.close()
-                loadBlacklist()
-            except:
-                print "Could not make blacklist file"
-    finally:
-        print blacklist
+def loadLists(blacklist=True,favlist=True):
+    if blacklist:
+        try:
+                lines = open(blacklist_path,'r').readlines()
+                for i in lines:
+                    #remove the \n
+                    blacklist.append(i[:-1])
+                print 'Loaded blacklist ...'
+        except:
+                try:
+                    print 'Creating blacklist file: %s' % (blacklist_path)
+                    _file = open(blacklist_path,'w')
+                    _file.close()
+                    loadLists(favlist=False)
+                except:
+                    print "Could not make blacklist file"
+    if favlist:
+        try:
+                lines = open(favlist_path,'r').readlines()
+                for i in lines:
+                    favlist.append(i[:-1])
+                print 'Loaded favourites...'
+        except:
+                try:
+                    print 'Creating Favourites list file: %s' % (favlist_path)
+                    _file = open(favlist_path,'w')
+                    _file.close()
+                    loadLists(blacklist=False)
+                except:
+                    print "Could not make Favourites file"
         
-def loadFavlist():
-    try:
-            lines = open(favlist_path,'r').readlines()
-            for i in lines:
-                favlist.append(i[:-1])
-            print 'Loaded favourites...'
-    except:
-            try:
-                print 'Creating Favourites list file: %s' % (favlist_path)
-                _file = open(favlist_path,'w')
-                _file.close()
-                loadFavlist()
-            except:
-                print "Could not make Favourites file"
-    finally:
-        print favlist
-        
-loadBlacklist()
-loadFavlist()
+loadLists()
 
 class Update(threading.Thread):
      def __init__(self, list, statusbar,checks):
@@ -100,7 +95,7 @@ class Update(threading.Thread):
          self.list = list
          self.statusbar = statusbar
          self.checks = [c.get_label() for c in checks]
-         print self.checks
+         #print self.checks
      def run(self):
         self.list.clear()
         global blacklist
@@ -117,7 +112,7 @@ class Update(threading.Thread):
                     fav = url in favlist
                     ip = aos2ip(url)
                     try:
-                        pipe = os.popen('ping %s -n 1 -w 500' % (ip))
+                        pipe = os.popen('ping %s -n 1 -w 100' % (ip))
                         ping = int(pipe.read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
                         pipe.stdin.close()
                     except:
