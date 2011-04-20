@@ -6,7 +6,7 @@ import gtk
 import urllib
 import threading
 import webbrowser
-import os
+import os,sys
 
 #It's safe to assume we're using a Linux system if importing _winreg fails
 try:
@@ -56,43 +56,40 @@ def aos2ip(aos):
   return ip
 
 
-def loadBlacklist():
-    try:
-            lines = open(blacklist_path,'r').readlines()
-            for i in lines:
-                #remove the \n
-                blacklist.append(i[:-1])
-            print 'Loaded blacklist ...'
-    except:
-            try:
-                print 'Creating blacklist file: %s' % (blacklist_path)
-                _file = open(blacklist_path,'w')
-                _file.close()
-                loadBlacklist()
-            except:
-                print "Could not make blacklist file"
-    finally:
-        print blacklist
-        
-def loadFavlist():
-    try:
-            lines = open(favlist_path,'r').readlines()
-            for i in lines:
-                favlist.append(i[:-1])
-            print 'Loaded favourites...'
-    except:
-            try:
-                print 'Creating Favourites list file: %s' % (favlist_path)
-                _file = open(favlist_path,'w')
-                _file.close()
-                loadFavlist()
-            except:
-                print "Could not make Favourites file"
-    finally:
-        print favlist
-        
 loadBlacklist()
 loadFavlist()
+def loadLists(blacklist=True,favlist=True):
+    if blacklist:
+        try:
+                lines = open(blacklist_path,'r').readlines()
+                for i in lines:
+                    #remove the \n
+                    blacklist.append(i[:-1])
+                print 'Loaded blacklist ...'
+        except:
+                try:
+                    print 'Creating blacklist file: %s' % (blacklist_path)
+                    _file = open(blacklist_path,'w')
+                    _file.close()
+                    loadLists(favlist=False)
+                except:
+                    print "Could not make blacklist file"
+    if favlist:
+        try:
+                lines = open(favlist_path,'r').readlines()
+                for i in lines:
+                    favlist.append(i[:-1])
+                print 'Loaded favourites...'
+        except:
+                try:
+                    print 'Creating Favourites list file: %s' % (favlist_path)
+                    _file = open(favlist_path,'w')
+                    _file.close()
+                    loadLists(blacklist=False)
+                except:
+                    print "Could not make Favourites file"
+        
+loadLists()
 
 class Update(threading.Thread):
      def __init__(self, list, statusbar,checks):
@@ -100,7 +97,6 @@ class Update(threading.Thread):
          self.list = list
          self.statusbar = statusbar
          self.checks = [c.get_label() for c in checks]
-         print self.checks
      def run(self):
         self.list.clear()
         global blacklist
@@ -117,7 +113,7 @@ class Update(threading.Thread):
                     fav = url in favlist
                     ip = aos2ip(url)
                     try:
-                        pipe = os.popen('ping %s -n 1 -w 500' % (ip))
+                        pipe = os.popen('ping %s -n 1 -w 100' % (ip))
                         ping = int(pipe.read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
                         pipe.stdin.close()
                     except:
@@ -158,6 +154,7 @@ class Base:
     
     def destroy(self, widget, data=None):
         gtk.main_quit()
+        sys.exit()
         return False
         
     def loadConfig(self):
@@ -220,9 +217,8 @@ class Base:
         return True
     
     def refresh(self,widget=None,data=None):
-        #self.liststore.append(['Loading',0,0,0,'Refreshing',True])
-        self.t = Update(self.liststore,self.statusbar,[r for r in self.checks if r.get_active()])
-        self.t.start()
+        t = Update(self.liststore,self.statusbar,[r for r in self.checks if r.get_active()])
+        t.start()
         return True
     
     def pop_path(self,widget=None,data=None):
@@ -437,8 +433,6 @@ class Base:
 
         self.aboutFrame.add(self.abvbox)
 
-       # self.radios = []
-       #Pass this info into the update so it filters correctly
         self.filterFrame = gtk.Frame("Filters")
         self.filterBox = gtk.HBox()
         self.checkFull = gtk.CheckButton("Full",True)
@@ -484,4 +478,4 @@ class Base:
 if __name__ == "__main__":
     base = Base()
     base.main()
-    
+
