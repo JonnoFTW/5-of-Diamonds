@@ -221,8 +221,8 @@ class Base:
     
     def refresh(self,widget=None,data=None):
         #self.liststore.append(['Loading',0,0,0,'Refreshing',True])
-        t = Update(self.liststore,self.statusbar,[r for r in self.checks if r.get_active()])
-        t.start()
+        self.t = Update(self.liststore,self.statusbar,[r for r in self.checks if r.get_active()])
+        self.t.start()
         return True
     
     def pop_path(self,widget=None,data=None):
