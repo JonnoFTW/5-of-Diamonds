@@ -272,7 +272,7 @@ class Base:
                 self.statusbar.push(0,name+' already in blacklist')
         except Exception,e:
             self.statusbar.push(0,'Failed to add to blacklist: '+name+' | '+str(e))
-
+    
     def serverListEvent(self,treeview,event):
         x = int(event.x)
         y = int(event.y)
