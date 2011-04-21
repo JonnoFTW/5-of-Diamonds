@@ -18,9 +18,19 @@ except:
 gtk.gdk.threads_init()
 global aos_path
 global config_path
+global mouse_fix
 
 blacklist = []
 favlist = []
+
+try:
+    if sys.argv[1]=='-mousefix':
+        mouse_fix = True
+    else:
+        mouse_fix = False
+except:
+    mouse_fix = False
+
 if onLinux:
     #find some way to access Wine's registry. For now, just take a guess.
     aos_path = os.path.expanduser('~')+'/.wine/drive_c/Program Files/Ace of Spades/client.exe'
@@ -310,6 +320,10 @@ class Base:
             elif event.type == gtk.gdk._2BUTTON_PRESS:
                 #Set the background colour to light green on click
                 #Doesn't reset the previously played row until another refresh
+                self.last_played = model[path][1]
+                model[path][7] ='#BFFFB8'
+                self.joinGame(model[path][1])
+            elif event.button == 2 and mouse_fix:
                 self.last_played = model[path][1]
                 model[path][7] ='#BFFFB8'
                 self.joinGame(model[path][1])
