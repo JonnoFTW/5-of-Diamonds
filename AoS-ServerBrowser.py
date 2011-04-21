@@ -55,9 +55,6 @@ def aos2ip(aos):
   ip = str(ip&0xFF)+'.'+str((ip&0xFF00)>>8)+'.'+str((ip&0xFF0000)>>16)+'.'+str((ip&0xFF000000)>>24)
   return ip
 
-
-loadBlacklist()
-loadFavlist()
 def loadLists(blacklist=True,favlist=True):
     if blacklist:
         try:
@@ -80,7 +77,8 @@ def loadLists(blacklist=True,favlist=True):
                 for i in lines:
                     favlist.append(i[:-1])
                 print 'Loaded favourites...'
-        except:
+        except Exception, e:
+                print e
                 try:
                     print 'Creating Favourites list file: %s' % (favlist_path)
                     _file = open(favlist_path,'w')
@@ -92,11 +90,15 @@ def loadLists(blacklist=True,favlist=True):
 loadLists()
 
 class Update(threading.Thread):
-     def __init__(self, list, statusbar,checks):
+     def stop(self):
+        gtk.gdk.flush()
+        gtk.gdk.threads_leave()
+     def __init__(self, list, statusbar,checks,last_played = None):
          super(Update, self).__init__()
          self.list = list
          self.statusbar = statusbar
-         self.checks = [c.get_label() for c in checks]
+         self.checks = [c.get_label() for c in [r for r in checks if r.get_active()]]
+         self.last_played = last_played
      def run(self):
         self.list.clear()
         global blacklist
@@ -119,8 +121,11 @@ class Update(threading.Thread):
                     except:
                         ping = int(i[6:i.find('<')])
                     name = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
-                    server = [fav,url,ping,playing,max_players,name,ip]
+                    if self.last_played == url: bg='#BFFFB8'
+                    else: bg = '#FFFFFF'
+                    server = [fav,url,ping,playing,max_players,name,ip,bg]
                     gtk.gdk.threads_enter()
+
                     if not url in blacklist:
                         if "Full" in self.checks and "Empty" in self.checks:
                             if playing != max_players and playing != 0:
@@ -140,6 +145,8 @@ class Update(threading.Thread):
             self.statusbar.push(0,"Updated successfully")
             gtk.gdk.threads_leave()
             return True
+        except SomeException,e :#When it can't update the statusbar because it is dead, sys.exit()
+            sys.exit()
         except Exception, e:
             gtk.gdk.threads_enter()
             self.statusbar.push(0,"Updating failed (%s)" % (str(e)))
@@ -154,6 +161,7 @@ class Base:
     
     def destroy(self, widget, data=None):
         gtk.main_quit()
+        self.t.stop()
         sys.exit()
         return False
         
@@ -217,8 +225,8 @@ class Base:
         return True
     
     def refresh(self,widget=None,data=None):
-        t = Update(self.liststore,self.statusbar,[r for r in self.checks if r.get_active()])
-        t.start()
+        self.t = Update(self.liststore,self.statusbar,self.checks,self.last_played)
+        self.t.start()
         return True
     
     def pop_path(self,widget=None,data=None):
@@ -273,7 +281,6 @@ class Base:
         pthinfo = treeview.get_path_at_pos(x, y)
         if pthinfo is not None:
             path, col, cellx, celly = pthinfo
-
             treeview.grab_focus()
             treeview.set_cursor( path, col, 0)
             # Popup blacklist menu on right click
@@ -301,6 +308,10 @@ class Base:
                 except Exception,e:
                     self.statusbar.push(0,'Failed to write favourites file: %s' % (str(e)))
             elif event.type == gtk.gdk._2BUTTON_PRESS:
+                #Set the background colour to light green on click
+                #Doesn't reset the previously played row until another refresh
+                self.last_played = model[path][1]
+                model[path][7] ='#BFFFB8'
                 self.joinGame(model[path][1])
         return True
 
@@ -315,33 +326,34 @@ class Base:
         self.tvfav.set_sort_column_id(0)
 
         rt = gtk.CellRendererText()
-        self.tvurl = gtk.TreeViewColumn("URL",rt, text=1)
+        self.tvurl = gtk.TreeViewColumn("URL",rt, text=1,background=7)
         self.tvurl.set_sort_column_id(1)
 
         rt = gtk.CellRendererText()
-        self.ping = gtk.TreeViewColumn("Ping",rt, text=2)
+        self.ping = gtk.TreeViewColumn("Ping",rt, text=2,background=7)
         self.ping.set_sort_column_id(2)
 
         rt = gtk.CellRendererText()
-        self.tvcurr = gtk.TreeViewColumn("Playing",rt, text=3)
+        self.tvcurr = gtk.TreeViewColumn("Playing",rt, text=3,background=7)
         self.tvcurr.set_sort_column_id(3)
 
         rt = gtk.CellRendererText()
-        self.tvmax = gtk.TreeViewColumn("Max",rt, text=4)
+        self.tvmax = gtk.TreeViewColumn("Max",rt, text=4,background=7)
         self.tvmax.set_sort_column_id(4)
 
         rt = gtk.CellRendererText()
-        self.tvname = gtk.TreeViewColumn("Name",rt, text=5)
+        self.tvname = gtk.TreeViewColumn("Name",rt, text=5,background=7)
         self.tvname.set_sort_column_id(5)
 
         rt = gtk.CellRendererText()
-        self.tvip = gtk.TreeViewColumn("IP",rt, text=6)
+        self.tvip = gtk.TreeViewColumn("IP",rt, text=6,background=7)
         self.tvip.set_sort_column_id(6)
         for i in [self.tvfav,self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname,self.tvip]:
             treeview.append_column(i)
                 
     
     def __init__(self):
+        self.last_played = None
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_size_request(600,650)
         self.window.set_title("5 of Diamonds")
@@ -358,8 +370,8 @@ class Base:
         self.sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 
-        #[fav,url,ping,playing,max_players,name,ip]
-        self.liststore = gtk.ListStore(bool,str,int, int, int,str, str)
+        #[fav,url,ping,playing,max_players,name,ip,last_played]
+        self.liststore = gtk.ListStore(bool,str,int, int, int,str, str,str)
         self.treeview = gtk.TreeView(self.liststore)
 
         self.treeview.connect("button_press_event",self.serverListEvent)
