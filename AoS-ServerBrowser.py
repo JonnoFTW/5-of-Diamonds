@@ -224,7 +224,8 @@ class Base:
 
     def ip2aos(self,ip):
         ip = ip.split('.')
-        self.joinGame('aos://%s' % (str(16777216*int(ip[0]) + 65536*int(ip[1]) + 256*int(ip[2]) + int(ip[3]))))
+        ip = int(ip[0]) + (int(ip[1])<<8) + (int(ip[2])<<16) + (int(ip[3])<<24)
+        self.joinGame('aos://%s' % (str(((ip + (1<<31)) % (1<<32)) - (1<<31))))
 
     def launchServer(self,widget, data=None):
         try:
