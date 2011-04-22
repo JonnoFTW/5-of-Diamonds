@@ -222,10 +222,47 @@ class Base:
             self.statusbar.push(0,str(e)+ '| Looked in '+aos_path)
         return True
 
+    #Following two functions SHAMELESSLY copied from:
+    #http://ardoris.wordpress.com/2008/07/05/pygtk-text-entry-dialog/
+    def responseToDialog(self,entry, dialog, response):
+        dialog.response(response)
+    
+    def getip(self,widget,data=None):
+        #base this on a message dialog
+        dialog = gtk.MessageDialog(
+            None,
+            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            gtk.MESSAGE_QUESTION,
+            gtk.BUTTONS_OK,
+            None)
+        dialog.set_markup('<b>IP2AoS</b>')
+        #create the text input field
+        entry = gtk.Entry()
+        #allow the user to press enter to do ok
+        entry.connect("activate", self.responseToDialog, dialog, gtk.RESPONSE_OK)
+        #create a horizontal box to pack the entry and a label
+        hbox = gtk.HBox()
+        hbox.pack_start(gtk.Label("IP:"), False, 5, 5)
+        hbox.pack_end(entry)
+        #some secondary text
+        dialog.format_secondary_markup("Enter IP address.")
+        #add it and show it
+        dialog.vbox.pack_end(hbox, True, True, 0)
+        dialog.show_all()
+        #go go go
+        dialog.run()
+        text = entry.get_text()
+        dialog.destroy()
+        self.ip2aos(text)
+
     def ip2aos(self,ip):
-        ip = ip.split('.')
-        ip = int(ip[0]) + (int(ip[1])<<8) + (int(ip[2])<<16) + (int(ip[3])<<24)
-        self.joinGame('aos://%s' % (str(((ip + (1<<31)) % (1<<32)) - (1<<31))))
+        try:
+            ip = ip.split('.')
+            ip = int(ip[0]) + (int(ip[1])<<8) + (int(ip[2])<<16) + (int(ip[3])<<24)
+            print ip
+            self.joinGame('aos://%s' % (str(((ip + (1<<31)) % (1<<32)) - (1<<31))))
+        except:
+            print 'Invalid IP.'
 
     def launchServer(self,widget, data=None):
         try:
@@ -422,6 +459,9 @@ class Base:
         self.pathB = gtk.Button("Find Client.exe")
         self.pathB.connect("clicked",self.pop_path,None)
         
+        self.joinB = gtk.Button("Add Server")
+        self.joinB.connect("clicked",self.getip,None)
+        
         #stick the buttons in a frame at the bottom of the window
         #use a hbox of 3 vboxes
         # Could probably refactor this with some lists and iterations
@@ -483,7 +523,7 @@ class Base:
         self.hbox = gtk.HBox()
         self.hbox.set_spacing(3)
 
-        buttons =[self.exitB,self.refreshB,self.saveB,self.webB,self.appB,self.pathB,self.serverB]
+        buttons =[self.exitB,self.refreshB,self.saveB,self.webB,self.appB,self.pathB,self.serverB,self.joinB]
         for i in buttons:
             self.hbox.pack_start(i,False,False,0)
             
