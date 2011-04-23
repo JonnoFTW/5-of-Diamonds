@@ -9,6 +9,7 @@ import webbrowser
 import os,sys
 
 #It's safe to assume we're using a Linux system if importing _winreg fails
+global onLinux
 try:
     import _winreg
     onLinux = False
@@ -125,9 +126,14 @@ class Update(threading.Thread):
                     fav = url in favlist
                     ip = aos2ip(url)
                     try:
-                        pipe = os.popen('ping %s -n 1 -w 100' % (ip))
-                        ping = int(pipe.read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
-                        pipe.stdin.close()
+                        if onLinux:
+                            pipe = os.popen('ping %s -c 1 -w 1' % (ip))
+                            ping = int(pipe.read().split('\n')[2].rpartition('time=')[2].rpartition(' ms')[0])
+                            pipe.stdin.close()
+                        else:
+                            pipe = os.popen('ping %s -n 1 -w 100' % (ip))
+                            ping = int(pipe.read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
+                            pipe.stdin.close()
                     except:
                         ping = int(i[6:i.find('<')])
                     name = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
