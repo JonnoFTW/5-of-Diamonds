@@ -116,7 +116,7 @@ class Update(threading.Thread):
         try:
             servers = []
             page = urllib.urlopen('http://ace-spades.com/?page_id=5').readlines()
-            s = page[page.index("<pre>\n")+2:-2]
+            s = page[page.index("<pre>\n")+2:page.find("</pre>\n")]
             for i in s:
                 try:
                     ratio = i[0:5].split('/')
@@ -361,13 +361,9 @@ class Base:
                     f.close()
                 except Exception,e:
                     self.statusbar.push(0,'Failed to write favourites file: %s' % (str(e)))
-            elif event.type == gtk.gdk._2BUTTON_PRESS:
+            elif (event.type == gtk.gdk._2BUTTON_PRESS) or ( event.button == 2 and mouse_fix:):
                 #Set the background colour to light green on click
                 #Doesn't reset the previously played row until another refresh
-                self.last_played = model[path][1]
-                model[path][7] ='#BFFFB8'
-                self.joinGame(model[path][1])
-            elif event.button == 2 and mouse_fix:
                 self.last_played = model[path][1]
                 model[path][7] ='#BFFFB8'
                 self.joinGame(model[path][1])
