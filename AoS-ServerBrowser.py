@@ -115,7 +115,7 @@ class Update(threading.Thread):
         global blacklist
         try:
             servers = []
-            page = urllib.urlopen('http://ace-spades.com/').readlines()
+            page = urllib.urlopen('http://ace-spades.com/?page_id=5').readlines()
             s = page[page.index("<pre>\n")+2:-2]
             for i in s:
                 try:
@@ -161,7 +161,7 @@ class Update(threading.Thread):
             self.statusbar.push(0,"Updated successfully")
             gtk.gdk.threads_leave()
             return True
-        except SomeException,e :#When it can't update the statusbar because it is dead, sys.exit()
+        except Exception, e :#When it can't update the statusbar because it is dead, sys.exit()
             sys.exit()
         except Exception, e:
             gtk.gdk.threads_enter()
