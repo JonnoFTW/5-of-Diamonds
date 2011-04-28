@@ -9,6 +9,7 @@ import webbrowser
 import os,sys
 
 #It's safe to assume we're using a Linux system if importing _winreg fails
+global onLinux
 try:
     import _winreg
     onLinux = False
@@ -114,7 +115,7 @@ class Update(threading.Thread):
         global blacklist
         try:
             servers = []
-            page = urllib.urlopen('http://ace-spades.com/').readlines()
+            page = urllib.urlopen('http://ace-spades.com/?page_id=5').readlines()
             s = page[page.index("<pre>\n")+2:-2]
             for i in s:
                 try:
@@ -125,9 +126,14 @@ class Update(threading.Thread):
                     fav = url in favlist
                     ip = aos2ip(url)
                     try:
-                        pipe = os.popen('ping %s -n 1 -w 100' % (ip))
-                        ping = int(pipe.read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
-                        pipe.stdin.close()
+                        if onLinux:
+                            pipe = os.popen('ping %s -c 1 -w 1' % (ip))
+                            ping = int(pipe.read().split('\n')[2].rpartition('time=')[2].rpartition(' ms')[0])
+                            pipe.stdin.close()
+                        else:
+                            pipe = os.popen('ping %s -n 1 -w 100' % (ip))
+                            ping = int(pipe.read().split('\n')[2].rpartition('time=')[2].rpartition('ms')[0])
+                            pipe.stdin.close()
                     except:
                         ping = int(i[6:i.find('<')])
                     name = filter(lambda x: isascii(x),i[i.find('>')+1:i.rfind('<')])
@@ -155,7 +161,7 @@ class Update(threading.Thread):
             self.statusbar.push(0,"Updated successfully")
             gtk.gdk.threads_leave()
             return True
-        except SomeException,e :#When it can't update the statusbar because it is dead, sys.exit()
+        except Exception, e :#When it can't update the statusbar because it is dead, sys.exit()
             sys.exit()
         except Exception, e:
             gtk.gdk.threads_enter()
