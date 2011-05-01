@@ -361,7 +361,7 @@ class Base:
                     f.close()
                 except Exception,e:
                     self.statusbar.push(0,'Failed to write favourites file: %s' % (str(e)))
-            elif (event.type == gtk.gdk._2BUTTON_PRESS) or ( event.button == 2 and mouse_fix:):
+            elif (event.type == gtk.gdk._2BUTTON_PRESS) or ( event.button == 2 and mouse_fix):
                 #Set the background colour to light green on click
                 #Doesn't reset the previously played row until another refresh
                 self.last_played = model[path][1]
