@@ -116,7 +116,7 @@ class Update(threading.Thread):
         try:
             servers = []
             page = urllib.urlopen('http://ace-spades.com/?page_id=5').readlines()
-            s = page[page.index("<pre>\n")+2:page.find("</pre>\n")]
+            s = page[page.index("<pre>\n"):page.index("</pre>\n")]
             for i in s:
                 try:
                     ratio = i[0:5].split('/')
@@ -496,7 +496,7 @@ class Base:
         self.aboutFrame = gtk.Frame("About")
         self.abvbox = gtk.VBox(True,3)
         
-        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.8\n2011\nGot bugs? Get the latest version")
+        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.82\n2011\nGot bugs? Get the latest version")
         self.abtlbl.set_justify(gtk.JUSTIFY_CENTER)
         self.abvbox.pack_start(self.abtlbl)
 
@@ -525,7 +525,8 @@ class Base:
         self.hbox = gtk.HBox()
         self.hbox.set_spacing(3)
 
-        buttons =[self.exitB,self.refreshB,self.saveB,self.webB,self.appB,self.pathB,self.serverB,self.joinB]
+	#removed pathB
+        buttons =[self.exitB,self.refreshB,self.saveB,self.webB,self.appB,self.serverB,self.joinB]
         for i in buttons:
             self.hbox.pack_start(i,False,False,0)
             
