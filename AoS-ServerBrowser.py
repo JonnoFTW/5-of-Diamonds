@@ -361,7 +361,7 @@ class Base:
                     f.close()
                 except Exception,e:
                     self.statusbar.push(0,'Failed to write favourites file: %s' % (str(e)))
-            elif event.type == gtk.gdk._2BUTTON_PRESS: #or ( event.button == 2 and mouse_fix):
+            elif (event.type == gtk.gdk._2BUTTON_PRESS) or event.button == 2:
                 #Set the background colour to light green on click
                 #Doesn't reset the previously played row until another refresh
                 self.last_played = model[path][1]
@@ -458,8 +458,8 @@ class Base:
         self.appB = gtk.Button("Get Latest 5oD")
         self.appB.connect("clicked",self.openPage,'5od')
 
-        self.pathB = gtk.Button("Find Client.exe")
-        self.pathB.connect("clicked",self.pop_path,None)
+##        self.pathB = gtk.Button("Find Client.exe")
+##        self.pathB.connect("clicked",self.pop_path,None)
         
         self.joinB = gtk.Button("Add Server")
         self.joinB.connect("clicked",self.getip,None)
