@@ -127,7 +127,7 @@ class Update(threading.Thread):
             log('[thread] Grabbing ace-spades page...')
             page = urllib.urlopen('http://ace-spades.com/?page_id=5').readlines()
             log('[thread] Grabbed.')
-            s = page[page.index("<pre>\n")+2:-2]
+            s = page[page.index("<pre>\n")+1:page.index("</pre>\n")]
             log('[thread] Parsing page...')
             for i in s:
                 try:
@@ -301,24 +301,24 @@ class Base:
         self.t.start()
         return True
     
-    def pop_path(self,widget=None,data=None):
-        #popup a window asking for the directory
-        self.pop = gtk.FileChooserDialog(title="Where did you install AoS?",
-                                         action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                                         buttons = (gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
-        response = self.pop.run()
-        if response == gtk.RESPONSE_OK or response == gtk.STOCK_OPEN:
-            self.set_path(self.pop.get_filename())
-        self.pop.destroy()
-        return True
-    
-    def set_path(self,data=aos_path):
-        aos_path = data+'\\client.exe'
-        config_path = aos_path.replace('client.exe','config.ini')
-        self.statusbar.push(0,'Now working from: '+aos_path[:-10])
-        print "AoS client path: "+aos_path
-        print "AoS config path: "+config_path        
-        return True
+##    def pop_path(self,widget=None,data=None):
+##        #popup a window asking for the directory
+##        self.pop = gtk.FileChooserDialog(title="Where did you install AoS?",
+##                                         action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
+##                                         buttons = (gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+##        response = self.pop.run()
+##        if response == gtk.RESPONSE_OK or response == gtk.STOCK_OPEN:
+##            self.set_path(self.pop.get_filename())
+##        self.pop.destroy()
+##        return True
+##    
+##    def set_path(self,data=aos_path):
+##        aos_path = data+'\\client.exe'
+##        config_path = aos_path.replace('client.exe','config.ini')
+##        self.statusbar.push(0,'Now working from: '+aos_path[:-10])
+##        print "AoS client path: "+aos_path
+##        print "AoS config path: "+config_path        
+##        return True
 
     def get_selected_id(self):
         ids = []
@@ -379,7 +379,7 @@ class Base:
                     f.close()
                 except Exception,e:
                     self.statusbar.push(0,'Failed to write favourites file: %s' % (str(e)))
-            elif (event.type == gtk.gdk._2BUTTON_PRESS) or ( event.button == 2 and mouse_fix):
+            elif (event.type == gtk.gdk._2BUTTON_PRESS) or event.button == 2:
                 #Set the background colour to light green on click
                 #Doesn't reset the previously played row until another refresh
                 self.last_played = model[path][1]
@@ -478,8 +478,8 @@ class Base:
         self.appB = gtk.Button("Get Latest 5oD")
         self.appB.connect("clicked",self.openPage,'5od')
 
-        self.pathB = gtk.Button("Find Client.exe")
-        self.pathB.connect("clicked",self.pop_path,None)
+##        self.pathB = gtk.Button("Find Client.exe")
+##        self.pathB.connect("clicked",self.pop_path,None)
         
         self.joinB = gtk.Button("Add Server")
         self.joinB.connect("clicked",self.getip,None)
@@ -487,6 +487,7 @@ class Base:
         #stick the buttons in a frame at the bottom of the window
         #use a hbox of 3 vboxes
         # Could probably refactor this with some lists and iterations
+        
         self.frame = gtk.Frame("Game Config")
         self.xresE = gtk.Entry()
         self.yresE = gtk.Entry()
@@ -516,7 +517,7 @@ class Base:
         self.aboutFrame = gtk.Frame("About")
         self.abvbox = gtk.VBox(True,3)
         
-        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.82\n2011\nGot bugs? Get the latest version")
+        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.84\n2011\nGot bugs? Get the latest version")
         self.abtlbl.set_justify(gtk.JUSTIFY_CENTER)
         self.abvbox.pack_start(self.abtlbl)
 
@@ -538,7 +539,11 @@ class Base:
         # Add the boxes to the frame
         for i in [self.box1,self.box2]:
             self.forms.pack_start(i,False,False,0)
-        self.forms.pack_start(self.aboutFrame,True,True,0)
+
+        self.frameBox = gtk.HBox()
+        self.frameBox.pack_start(self.frame,True,True,5)
+        self.frameBox.pack_start(self.aboutFrame,True,True,5)
+        #self.forms.pack_start(self.aboutFrame,True,True,0)
         self.frame.add(self.forms)
         self.loadConfig()
         self.vbox = gtk.VBox(False,5)
@@ -552,7 +557,7 @@ class Base:
             
         self.vbox.pack_start(self.hbox,False,False,0)
         self.vbox.pack_start(self.sw,True,True,0)
-        self.vbox.pack_start(self.frame,False,False,0)
+        self.vbox.pack_start(self.frameBox,False,False,0)
         self.vbox.pack_start(self.filterFrame,False,False,0)
         self.vbox.pack_start(self.statusbar, False, False, 0)
 
