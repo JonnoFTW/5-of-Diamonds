@@ -127,7 +127,9 @@ class Update(threading.Thread):
             log('[thread] Grabbing ace-spades page...')
             page = urllib.urlopen('http://ace-spades.com/?page_id=5').readlines()
             log('[thread] Grabbed.')
-            s = page[page.index("<pre>\n")+1:page.index("</pre>\n")]
+            for entry in page: log(repr(entry))
+            print 'testing %s' % (page.index("<pre>#/MAX PING NAME (Click to Join)\n"))
+            s = page[page.index("<pre>#/MAX PING NAME (Click to Join)\n")+1:page.index("</pre>\n")]
             log('[thread] Parsing page...')
             for i in s:
                 try:
@@ -178,7 +180,8 @@ class Update(threading.Thread):
             log('[thread] Done.')
             return True
         except Exception, e :#When it can't update the statusbar because it is dead, sys.exit()
-            log('[thread] Exited with: %s' % (str(e())))
+            log('[thread] Exited with: %s' % (str(e)))
+            print e
             sys.exit()
         except Exception, e:
             log('[error] %s' % (str(e())))
