@@ -100,6 +100,13 @@ def loadLists(blacklist=True,favlist=True):
         
 loadLists()
 
+def log(txt):
+	f = open('output.txt','a')
+	f.write(txt+'\n')
+	f.close()
+
+log('Logging...')
+
 class Update(threading.Thread):
      def stop(self):
         gtk.gdk.flush()
@@ -111,20 +118,29 @@ class Update(threading.Thread):
          self.checks = [c.get_label() for c in [r for r in checks if r.get_active()]]
          self.last_played = last_played
      def run(self):
+        log('[thread] Entering run()')
         self.list.clear()
+        log('[thread] List cleared.')
         global blacklist
         try:
             servers = []
+            log('[thread] Grabbing ace-spades page...')
             page = urllib.urlopen('http://ace-spades.com/?page_id=5').readlines()
-            s = page[page.index("<pre>\n")+1:page.index("</pre>\n")]
+            log('[thread] Grabbed.')
+            for entry in page: log(repr(entry))
+            print 'testing %s' % (page.index("<pre>#/MAX PING NAME (Click to Join)\n"))
+            s = page[page.index("<pre>#/MAX PING NAME (Click to Join)\n")+1:page.index("</pre>\n")]
+            log('[thread] Parsing page...')
             for i in s:
                 try:
                     ratio = i[0:5].split('/')
                     playing = int(ratio[0].replace(' ',''))
                     max_players = int(ratio[1].replace(' ',''))
                     url = i[i.find('"')+1:i.find('>')-1]
+                    log('[thread] Parsing...')
                     fav = url in favlist
                     ip = aos2ip(url)
+                    log('[thread] Performing ping.')
                     try:
                         if onLinux:
                             pipe = os.popen('ping %s -c 1 -w 1' % (ip))
@@ -157,13 +173,18 @@ class Update(threading.Thread):
                     gtk.gdk.threads_leave()
                 except Exception, e:
                     print 'Skipped invalid server (%s)' % (str(e))
+            log('[thread] Pushing to statusbar...')
             gtk.gdk.threads_enter()
             self.statusbar.push(0,"Updated successfully")
             gtk.gdk.threads_leave()
+            log('[thread] Done.')
             return True
         except Exception, e :#When it can't update the statusbar because it is dead, sys.exit()
+            log('[thread] Exited with: %s' % (str(e)))
+            print e
             sys.exit()
         except Exception, e:
+            log('[error] %s' % (str(e())))
             gtk.gdk.threads_enter()
             self.statusbar.push(0,"Updating failed (%s)" % (str(e)))
             gtk.gdk.threads_leave()
@@ -373,6 +394,7 @@ class Base:
         self.widget.popup(None, None, None, event.button, event.time)
     
     def draw_columns(self,treeview):
+        log('[main] draw_columns')
         self.ren = gtk.CellRendererToggle()
         #self.ren.connect("toggled",self.serverListEvent,self.liststore)
         self.tvfav = gtk.TreeViewColumn('Fav',self.ren,active=0)
@@ -404,8 +426,9 @@ class Base:
         self.tvip.set_sort_column_id(6)
         for i in [self.tvfav,self.tvurl,self.ping,self.tvcurr,self.tvmax,self.tvname,self.tvip]:
             treeview.append_column(i)
+        
+        log('[main] Finish drawing...')
                 
-    
     def __init__(self):
         self.last_played = None
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -530,7 +553,7 @@ class Base:
         self.hbox = gtk.HBox()
         self.hbox.set_spacing(3)
 
-	#removed pathB
+        #removed pathB
         buttons =[self.exitB,self.refreshB,self.saveB,self.webB,self.appB,self.serverB,self.joinB]
         for i in buttons:
             self.hbox.pack_start(i,False,False,0)
