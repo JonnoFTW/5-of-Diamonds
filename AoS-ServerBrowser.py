@@ -7,7 +7,7 @@ import urllib
 import threading
 import webbrowser
 import os,sys
-
+VERSION = 1.86
 #It's safe to assume we're using a Linux system if importing _winreg fails
 global onLinux
 try:
@@ -125,7 +125,7 @@ class Update(threading.Thread):
         try:
             servers = []
             log('[thread] Grabbing ace-spades page...')
-            page = urllib.urlopen('http://ace-spades.com/?page_id=5').readlines()
+            page = urllib.urlopen('http://ace-spades.com/play/').readlines()
             log('[thread] Grabbed.')
             for entry in page: log(repr(entry))
             print 'testing %s' % (page.index("<pre>#/MAX PING NAME (Click to Join)\n"))
@@ -136,7 +136,7 @@ class Update(threading.Thread):
                     ratio = i[0:5].split('/')
                     playing = int(ratio[0].replace(' ',''))
                     max_players = int(ratio[1].replace(' ',''))
-                    url = i[i.find('"')+1:i.find('>')-1]
+                    url = i[i.find('"')+1:i.find('"',24)]
                     log('[thread] Parsing...')
                     fav = url in favlist
                     ip = aos2ip(url)
@@ -205,11 +205,17 @@ class Base:
     def loadConfig(self):
         try:
             f = open(config_path,'r')
-            lines = f.readlines()               
-            self.xresE.set_text(lines[0].split()[1])
-            self.yresE.set_text(lines[1].split()[1])
-            self.nameE.set_text(lines[3].split()[1])
-            self.volE.set_text(lines[2].split()[1])
+            lines = f.readlines()
+            conf = dict()
+            for i in lines:
+                j = i.split()
+                conf[j[0]] = j[1]
+            self.xresE.set_text(conf['xres'])
+            self.yresE.set_text(conf['yres'])
+            self.nameE.set_text(conf['name'])
+            self.volE.set_text(conf['vol'])
+            self.caplim.set_text(conf['caplimit'])
+            self.invert.set_text(conf['inverty'])
             self.statusbar.push(0,"Loaded config.ini successfully")
             f.close()
         except Exception,e:
@@ -222,8 +228,10 @@ class Base:
             y = self.yresE.get_text()
             name = self.nameE.get_text()
             vol = self.volE.get_text()
+            inv = self.invert.get_text()
+            caplim = self.caplim.get_text()
             f = open(config_path,'w')
-            f.write('\n'.join(['xres '+x,'yres '+y,'vol '+vol,'name '+name]))
+            f.write('\n'.join(['name '+name,'xres '+x,'yres '+y,'vol '+vol,'inverty '+inverty,'caplimit '+caplim]))
             f.close()
             self.statusbar.push(0,"Config updated successfully in: "+config_path )
         except Exception, e:
@@ -495,32 +503,43 @@ class Base:
         self.xresE = gtk.Entry()
         self.yresE = gtk.Entry()
         self.nameE = gtk.Entry()
-        self.volE = gtk.Entry()
+        self.volE  = gtk.Entry()
+        self.invert = gtk.Entry()
+        self.caplim = gtk.Entry()
         self.lXres = gtk.Label("X Res")
         self.lYres = gtk.Label("Y Res")
         self.lName = gtk.Label("Name")
         self.lVolume = gtk.Label("Volume")
+        self.linvert = gtk.Label("Invert Mouse")
+        self.lcaplim = gtk.Label("Cap limit")
         
         self.forms = gtk.HBox()
-        self.box1 = gtk.VBox(False,5)
-        self.box2 = gtk.VBox(False,5)
+        self.box1 = gtk.VBox(False,0)
+        self.box2 = gtk.VBox(False,0)
+        self.box3 = gtk.VBox(False,0)
 
-        self.box1.pack_start(self.lXres,False,False,0)
+        self.box1.pack_start(self.lXres,True,True,0)
         self.box1.pack_start(self.xresE,False,False,0)
         
-        self.box1.pack_start(self.lYres,False,False,0)
+        self.box1.pack_start(self.lYres,True,True,0)
         self.box1.pack_start(self.yresE,False,False,0)
         
-        self.box2.pack_start(self.lName,False,False,0)
+        self.box2.pack_start(self.lName,True,True,0)
         self.box2.pack_start(self.nameE,False,False,0)
                         
-        self.box2.pack_start(self.lVolume,False,False,0)
+        self.box2.pack_start(self.lVolume,True,True,0)
         self.box2.pack_start(self.volE,False,False,0)
+
+        self.box3.pack_start(self.linvert,True,True,0)
+        self.box3.pack_start(self.invert,False,False,0)
+                        
+        self.box3.pack_start(self.lcaplim,True,True,0)
+        self.box3.pack_start(self.caplim,False,False,0)
 
         self.aboutFrame = gtk.Frame("About")
         self.abvbox = gtk.VBox(True,3)
         
-        self.abtlbl = gtk.Label("5 of Diamonds\nVersion 1.84\n2011\nGot bugs? Get the latest version")
+        self.abtlbl = gtk.Label("5 of Diamonds\nVersion "+str(VERSION)+"\n2011\nGot bugs? Get the latest version")
         self.abtlbl.set_justify(gtk.JUSTIFY_CENTER)
         self.abvbox.pack_start(self.abtlbl)
 
@@ -540,8 +559,8 @@ class Base:
 
         
         # Add the boxes to the frame
-        for i in [self.box1,self.box2]:
-            self.forms.pack_start(i,False,False,0)
+        for i in [self.box1,self.box2,self.box3]:
+            self.forms.pack_start(i,True,True,0)
 
         self.frameBox = gtk.HBox()
         self.frameBox.pack_start(self.frame,True,True,5)
